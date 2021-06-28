@@ -96,7 +96,7 @@ func (o *Server) IsTLS() bool {
 func (srv *Server) StartWithContext(ctx context.Context) error {
 	// this will be difficult because of it iwll need to handle two different go routines for spinning off the grpc server and the http gateway server
 
-	eg := errgroup.WithContext(ctx)
+	eg, ctx := errgroup.WithContext(ctx)
 
 	eg.Go(func() error {
 		return srv.grpcServer.Serve(srv.listener)
