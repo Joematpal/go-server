@@ -111,19 +111,25 @@ func (srv *Server) StartWithContext(ctx context.Context) error {
 
 	eg, ctx := errgroup.WithContext(ctx)
 
-	eg.Go(func() error {
-		return srv.grpcServer.Serve(srv.listener)
-	})
+	if srv.grpcServer != nil {
+		eg.Go(func() error {
+			return srv.grpcServer.Serve(srv.listener)
+		})
+	}
 
 	// before we run the gateway server we need to check if we even need it.
-	eg.Go(func() error {
-		return srv.httpServer.ListenAndServe()
-	})
+	if srv.httpServer != nil {
+		eg.Go(func() error {
+			return srv.httpServer.ListenAndServe()
+		})
+	}
 
 	eg.Go(func() error {
 		<-ctx.Done()
 		fmt.Println("is it done?")
-		srv.grpcServer.GracefulStop()
+		if srv.grpcServer != nil {
+			srv.grpcServer.GracefulStop()
+		}
 		return ctx.Err()
 	})
 

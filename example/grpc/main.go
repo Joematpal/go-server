@@ -1,8 +1,11 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
+	"os/signal"
+	"syscall"
 
 	logger "github.com/digital-dream-labs/go-logger"
 	loggerf "github.com/digital-dream-labs/go-logger/flags"
@@ -61,7 +64,14 @@ func NewApp() *cli.App {
 }
 
 func main() {
-	if err := NewApp().Run(os.Args); err != nil {
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		defer cancel()
+		sigs := make(chan os.Signal, 1)
+		signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+		<-sigs
+	}()
+	if err := NewApp().RunContext(ctx, os.Args); err != nil {
 		panic(err)
 	}
 }
