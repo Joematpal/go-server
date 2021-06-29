@@ -61,7 +61,7 @@ func WithLogger(logr logger) Option {
 	})
 }
 
-func WithServerOptions(serverOpts []grpc.ServerOption) Option {
+func WithServerOptions(serverOpts ...grpc.ServerOption) Option {
 	return optionApplyFunc(func(s *Server) error {
 		s.serverOptions = append(s.serverOptions, serverOpts...)
 		return nil
