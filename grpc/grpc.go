@@ -130,6 +130,9 @@ func (srv *Server) StartWithContext(ctx context.Context) error {
 		if srv.grpcServer != nil {
 			srv.grpcServer.GracefulStop()
 		}
+		if srv.httpServer != nil {
+			srv.httpServer.Shutdown(ctx)
+		}
 		return ctx.Err()
 	})
 
