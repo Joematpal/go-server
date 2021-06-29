@@ -1,0 +1,23 @@
+SRC_DIR="./protobufs"
+DST_DIR="./pkg"
+
+gen_proto_stubs() {
+    SVC_NAME=$1
+    SVC_VER=$2
+
+    SVC_DIR="$SVC_NAME/$SVC_VER"
+    
+    mkdir -p "pkg/$SVC_DIR"
+    mkdir -p swagger
+
+    ./bin/protoc -I=$SRC_DIR/$SVC_DIR \
+        -I="./bin/protobuf/src/" \
+        --go_out=$DST_DIR/$SVC_DIR \
+        --go-grpc_out=paths=source_relative:$DST_DIR/$SVC_DIR \
+        --go_opt=paths=source_relative \
+        --grpc-gateway_out=logtostderr=true,grpc_api_configuration=$SRC_DIR/$SVC_DIR/$SVC_NAME.yaml,allow_delete_body=true,paths=source_relative:$DST_DIR/$SVC_DIR \
+        --openapiv2_out=logtostderr=true,grpc_api_configuration=$SRC_DIR/$SVC_DIR/$SVC_NAME.yaml,allow_delete_body=true:./swagger \
+        $SRC_DIR/$SVC_DIR/$SVC_NAME.proto
+}
+
+gen_proto_stubs "streamer" "v1"
