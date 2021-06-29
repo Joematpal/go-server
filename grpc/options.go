@@ -1,5 +1,7 @@
 package grpc
 
+import "google.golang.org/grpc"
+
 type Option interface {
 	applyOption(*Server) error
 }
@@ -17,7 +19,6 @@ func WithRegisterService(rs RegisterService) Option {
 	})
 }
 
-// host             string
 func WithHost(host string) Option {
 	return optionApplyFunc(func(s *Server) error {
 		s.host = host
@@ -25,7 +26,6 @@ func WithHost(host string) Option {
 	})
 }
 
-// port             string
 func WithPort(port string) Option {
 	return optionApplyFunc(func(s *Server) error {
 		s.port = port
@@ -33,7 +33,6 @@ func WithPort(port string) Option {
 	})
 }
 
-// tls              bool
 func WithTLS(tls bool) Option {
 	return optionApplyFunc(func(s *Server) error {
 		s.tls = tls
@@ -41,7 +40,6 @@ func WithTLS(tls bool) Option {
 	})
 }
 
-// pubCert          string
 func WithPubCert(pubCert string) Option {
 	return optionApplyFunc(func(s *Server) error {
 		s.pubCert = pubCert
@@ -49,7 +47,6 @@ func WithPubCert(pubCert string) Option {
 	})
 }
 
-// privCert         string
 func WithPrivCert(privCert string) Option {
 	return optionApplyFunc(func(s *Server) error {
 		s.privCert = privCert
@@ -60,6 +57,13 @@ func WithPrivCert(privCert string) Option {
 func WithLogger(logr logger) Option {
 	return optionApplyFunc(func(s *Server) error {
 		s.logger = logr
+		return nil
+	})
+}
+
+func WithServerOptions(serverOpts []grpc.ServerOption) Option {
+	return optionApplyFunc(func(s *Server) error {
+		s.serverOptions = append(s.serverOptions, serverOpts...)
 		return nil
 	})
 }
