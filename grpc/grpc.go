@@ -11,90 +11,103 @@ import (
 )
 
 type Server struct {
-	host          string
-	port          string
-	tls           bool
-	listener      net.Listener
-	serverOptions []grpc.ServerOption
-	grpcServer    *grpc.Server
-	httpServer    *http.Server
+	host             string
+	port             string
+	tls              bool
+	pubCert          string
+	privCert         string
+	listener         net.Listener
+	serverOptions    []grpc.ServerOption
+	grpcServer       *grpc.Server
+	httpServer       *http.Server
+	logger           logger
+	registerServices []RegisterService
 }
 
+type logger interface {
+	Infof(format string, args ...interface{})
+	Debugf(format string, args ...interface{})
+}
+
+type RegisterService = func(*grpc.Server)
+
 // set up grpc connection
+// Takes in a anonymous function that registers the service
 func New(opts ...Option) (*Server, error) {
-	// TODO: Iterate over o.serverOptions and apply them to option struct
-	o := &Server{}
+	s := &Server{
+		serverOptions:    []grpc.ServerOption{},
+		registerServices: []RegisterService{},
+	}
 	var err error
 	for _, opt := range opts {
-		if err := opt.applyOption(o); err != nil {
+		if err := opt.applyOption(s); err != nil {
 			return nil, err
 		}
 	}
-	// TODO: needs to be option instead of c.String
 
-	// grpcHost := c.String(flags.GRPCHost)
-	// grpcPort := c.String(flags.GRPCPort)
-	// isTLS := c.Bool(flags.GRPCTLS)
-	// grpcPubCert := c.String(flags.GRPCPubCert)
-	// grpcPrivCert := c.String(flags.GRPCPrivCert)
-
-	if o.listener == nil {
-		o.listener, err = net.Listen("tcp", fmt.Sprintf("%s:%s", o.host, o.port))
+	if s.listener == nil {
+		s.listener, err = net.Listen("tcp", fmt.Sprintf("%s:%s", s.host, s.port))
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	// TODO: Add to option struct
-	// o.serverOptions := []grpc.ServerOption{
-	// 	grpc.UnaryInterceptor(grpclog.UnaryServerInterceptor()),
-	// 	grpc.StreamInterceptor(grpclog.StreamServerInterceptor()),
-	// }
-
-	if o.IsTLS() {
-		// log.Infoln("tls is on")
-		// creds, err := credentials.NewServerTLSFromFile(grpcPubCert, grpcPrivCert)
-		// if err != nil {
-		// 	pubCert, err := base64.StdEncoding.DecodeString(grpcPubCert)
-		// 	if err != nil {
-		// 		return err
-		// 	}
-		// 	privCert, err := base64.StdEncoding.DecodeString(grpcPrivCert)
-		// 	if err != nil {
-		// 		return err
-		// 	}
-		// 	creds, err := tls.X509KeyPair(pubCert, privCert)
-		// 	if err != nil {
-		// 		return err
-		// 	}
-		// 	o.serverOptions = append(o.serverOptions, grpc.Creds(credentials.NewTLS(&tls.Config{Certificates: []tls.Certificate{creds}})))
-		// }
-		// o.serverOptions = append(o.serverOptions, grpc.Creds(creds))
+	if s.IsTLS() {
+		if creds, err := ParseCredentials(s.pubCert, s.privCert); err != nil {
+			return nil, err
+		} else {
+			s.serverOptions = append(s.serverOptions, grpc.Creds(creds))
+		}
 	}
 
-	o.grpcServer = grpc.NewServer(o.serverOptions...)
+	s.grpcServer = grpc.NewServer(s.serverOptions...)
 
-	// TODO: Register here grpc interface to the implementation
+	for _, service := range s.registerServices {
+		service(s.grpcServer)
+	}
 
 	// TODO: Register the http server for the GRPC Gateway.
-	// and Register the grpc client on the mux runtime; pbSomething.RegisterSomerthingHander
 
-	fmt.Println("listening:", o.host+":"+o.port)
-	return o, nil
+	// TODO:  and Register the grpc client on the mux runtime; pbSomething.RegisterSomerthingHander
+
+	s.Infof("listening: %s:%s", s.host, s.port)
+	return s, nil
 }
 
-// Copies the struct
-func (o *Server) applyOption(*Server) error {
-	// TODO: copy struct
+// Takes the receiver and and applies it to the server
+func (s *Server) applyOption(server *Server) error {
+	if s.host != "" {
+		server.host = s.host
+	}
+	if s.port != "" {
+		server.port = s.port
+	}
+	if s.tls {
+		server.tls = s.tls
+
+		if s.pubCert != "" {
+			server.pubCert = s.pubCert
+		}
+		if s.privCert != "" {
+			server.privCert = s.privCert
+		}
+	}
+	if s.listener != nil {
+		server.listener = s.listener
+	}
+	if len(s.serverOptions) > 0 {
+		server.serverOptions = append(server.serverOptions, s.serverOptions...)
+	}
+
 	return nil
 }
 
-func (o *Server) IsTLS() bool {
-	return o.tls
+func (s *Server) IsTLS() bool {
+	return s.tls
 }
 
 func (srv *Server) StartWithContext(ctx context.Context) error {
-	// this will be difficult because of it iwll need to handle two different go routines for spinning off the grpc server and the http gateway server
+	// this will be difficult because of it will need to handle two different go routines for spinning off the grpc server and the http gateway server
 
 	eg, ctx := errgroup.WithContext(ctx)
 
@@ -108,16 +121,22 @@ func (srv *Server) StartWithContext(ctx context.Context) error {
 	})
 
 	eg.Go(func() error {
-		select {
-		case <-ctx.Done():
-			//do a check if we have a httpServer
-			// src.httpServer.Shutdown(context.Background())
-			srv.grpcServer.GracefulStop()
-			return ctx.Err()
-		}
+		<-ctx.Done()
+		srv.grpcServer.GracefulStop()
+		return ctx.Err()
 	})
 
 	return eg.Wait()
 }
 
-// TODO : think about canceling
+func (s *Server) Infof(format string, args ...interface{}) {
+	if s.logger != nil {
+		s.logger.Infof(format, args...)
+	}
+}
+
+func (s *Server) Debugf(format string, args ...interface{}) {
+	if s.logger != nil {
+		s.logger.Debugf(format, args...)
+	}
+}

@@ -4,8 +4,9 @@ import (
 	"fmt"
 
 	"github.com/digital-dream-labs/go-server/flags"
-	"github.com/digital-dream-labs/go-server/grpc"
+	grpcp "github.com/digital-dream-labs/go-server/grpc"
 	cli "github.com/urfave/cli/v2"
+	"google.golang.org/grpc"
 )
 
 func NewApp() *cli.App {
@@ -13,8 +14,13 @@ func NewApp() *cli.App {
 		Name:  "example grpc server",
 		Flags: flags.GRPCFlags,
 		Action: func(c *cli.Context) error {
-			opts := []grpc.Option{}
-			srv, err := grpc.New(opts...)
+			opts := []grpcp.Option{
+				grpcp.WithRegisterService(func(*grpc.Server) {
+					// fmt.Println("Add your service here")
+				}),
+			}
+
+			srv, err := grpcp.New(opts...)
 			if err != nil {
 				return err
 			}
