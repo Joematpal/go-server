@@ -1,4 +1,4 @@
-module github.com/digital-dream-labs/go-server/example/grpc
+module github.com/digital-dream-labs/go-server/example/server
 
 go 1.16
 

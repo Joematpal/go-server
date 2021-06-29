@@ -5,7 +5,7 @@ import (
 	"math"
 	"time"
 
-	"github.com/digital-dream-labs/go-server/example/grpc/internal/logger"
+	"github.com/digital-dream-labs/go-server/example/server/internal/logger"
 	"google.golang.org/grpc/examples/route_guide/routeguide"
 )
 

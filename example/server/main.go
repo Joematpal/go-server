@@ -10,8 +10,8 @@ import (
 	logger "github.com/digital-dream-labs/go-logger"
 	loggerf "github.com/digital-dream-labs/go-logger/flags"
 
-	"github.com/digital-dream-labs/go-server/example/grpc/internal/flags"
-	route_guide "github.com/digital-dream-labs/go-server/example/grpc/internal/route_guide"
+	"github.com/digital-dream-labs/go-server/example/server/internal/flags"
+	route_guide "github.com/digital-dream-labs/go-server/example/server/internal/route_guide"
 	serverf "github.com/digital-dream-labs/go-server/flags"
 	grpcp "github.com/digital-dream-labs/go-server/grpc"
 	cli "github.com/urfave/cli/v2"
