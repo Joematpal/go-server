@@ -10,9 +10,9 @@ import (
 	"time"
 
 	serverf "github.com/digital-dream-labs/go-server/flags"
+	streamer "github.com/digital-dream-labs/go-server/pkg/streamer/v1"
 	cli "github.com/urfave/cli/v2"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/examples/route_guide/routeguide"
 )
 
 func NewApp() *cli.App {
@@ -31,9 +31,9 @@ func NewApp() *cli.App {
 			if err != nil {
 				return fmt.Errorf("dial context: %v", err)
 			}
-			rg := routeguide.NewRouteGuideClient(conn)
+			rg := streamer.NewStreamerClient(conn)
 
-			rrc, err := rg.RecordRoute(ctx)
+			rrc, err := rg.StreamPoint(ctx)
 			if err != nil {
 				return fmt.Errorf("record route: %v", err)
 			}
@@ -53,10 +53,10 @@ func NewApp() *cli.App {
 	}
 }
 
-func randomPoint(r *rand.Rand) *routeguide.Point {
+func randomPoint(r *rand.Rand) *streamer.Point {
 	lat := (r.Int31n(180) - 90) * 1e7
 	long := (r.Int31n(360) - 180) * 1e7
-	return &routeguide.Point{Latitude: lat, Longitude: long}
+	return &streamer.Point{Latitude: lat, Longitude: long}
 }
 
 func main() {

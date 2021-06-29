@@ -14,9 +14,9 @@ import (
 	route_guide "github.com/digital-dream-labs/go-server/example/server/internal/route_guide"
 	serverf "github.com/digital-dream-labs/go-server/flags"
 	grpcp "github.com/digital-dream-labs/go-server/grpc"
+	streamer "github.com/digital-dream-labs/go-server/pkg/streamer/v1"
 	cli "github.com/urfave/cli/v2"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/examples/route_guide/routeguide"
 )
 
 func NewApp() *cli.App {
@@ -37,7 +37,7 @@ func NewApp() *cli.App {
 			opts := []grpcp.Option{
 				grpcp.WithRegisterService(func(s *grpc.Server) {
 					rg := route_guide.New(logr)
-					routeguide.RegisterRouteGuideServer(s, rg)
+					streamer.RegisterStreamerServer(s, rg)
 				}),
 				grpcp.WithLogger(logr),
 			}

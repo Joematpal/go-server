@@ -11,7 +11,6 @@ require (
 	golang.org/x/sys v0.0.0-20210629170331-7dc0b73dc9fb // indirect
 	google.golang.org/genproto v0.0.0-20210629135825-364e77e5a69d // indirect
 	google.golang.org/grpc v1.38.0
-	google.golang.org/grpc/examples v0.0.0-20210628165121-83f9def5feb3
 )
 
 replace github.com/digital-dream-labs/go-server => ../../
