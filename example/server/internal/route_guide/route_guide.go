@@ -7,6 +7,7 @@ import (
 
 	"github.com/digital-dream-labs/go-server/example/server/internal/logger"
 	"google.golang.org/grpc/examples/route_guide/routeguide"
+	// "github.com/digital-dream-labs/go-server/pkg/streamer/v1"
 )
 
 type RouteGuide struct {

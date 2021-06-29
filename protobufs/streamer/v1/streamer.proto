@@ -7,7 +7,7 @@ package streamer;
 
 // Interface exported by the server.
 service Streamer {
-  rpc StreamPoint(stream Point) returns (Status) {}
+  rpc StreamPoint(stream Point) returns (Status);
 }
 
 // Points are represented as latitude-longitude pairs in the E7 representation

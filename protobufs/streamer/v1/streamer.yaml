@@ -3,3 +3,8 @@ config_version: 3
 
 http:
   rules:
+    - selector: streamer.Streamer.StreamPoint
+      post: /api/v1/stream/point
+      body: "*"
+      produces: application/json
+      consumes: application/octet-stream
