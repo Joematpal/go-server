@@ -122,6 +122,7 @@ func (srv *Server) StartWithContext(ctx context.Context) error {
 
 	eg.Go(func() error {
 		<-ctx.Done()
+		fmt.Println("is it done?")
 		srv.grpcServer.GracefulStop()
 		return ctx.Err()
 	})
