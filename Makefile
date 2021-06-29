@@ -1,4 +1,4 @@
-.PHONY: example example_client example_grpc
+.PHONY: example example_client example_server
 
 
 example_client:
@@ -10,8 +10,8 @@ example_client:
 	GRPC_PORT=9000 \
 	go run main.go
 
-example_grpc:
-	cd example/grpc && \
+example_server:
+	cd example/server && \
 	LOG_ENV=dev \
 	LOG_ENCODING=console \
 	LOG_LEVEL=fatal \
@@ -28,7 +28,7 @@ bin/go.mod:
 
 go.mod:
 	@go mod init
-	
+
 .PHONY: verify-proto
 verify-proto: proto
 	@./scripts/git-diff
