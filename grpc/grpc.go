@@ -71,9 +71,8 @@ func New(opts ...Option) (*Server, error) {
 	}
 
 	// Creates GRPC gateway if needed
-	fmt.Println("Before gRPC gateway", s.IsTLS(), len(s.gatewayServiceHandlers) > 0)
 	if len(s.gatewayServiceHandlers) > 0 && s.IsTLS() {
-		fmt.Println("running gRPC gateway")
+		s.Debugf("running gRPC gateway")
 		if err := s.newGRPCGateway(); err != nil {
 			return nil, err
 		}
@@ -123,7 +122,7 @@ func (srv *Server) StartWithContext(ctx context.Context) error {
 	// Run grpc server only when gateway is not running - because httpServer has a mux to grpc
 	// and dont want two listeners on same port
 	if srv.grpcServer != nil && srv.httpServer == nil {
-		fmt.Println("Running gRPC")
+		srv.Debugf("running gRPC")
 		eg.Go(func() error {
 			return srv.grpcServer.Serve(srv.listener)
 		})
@@ -131,7 +130,7 @@ func (srv *Server) StartWithContext(ctx context.Context) error {
 
 	// before we run the gateway server we need to check if we even need it.
 	if srv.httpServer != nil {
-		fmt.Println("Running http")
+		srv.Debugf("running http")
 		eg.Go(func() error {
 			return srv.httpServer.Serve(tls.NewListener(srv.listener, srv.httpServer.TLSConfig))
 		})
@@ -139,7 +138,7 @@ func (srv *Server) StartWithContext(ctx context.Context) error {
 
 	eg.Go(func() error {
 		<-ctx.Done()
-		fmt.Println("is it done?")
+		srv.Debugf("start shutdown")
 		if srv.grpcServer != nil {
 			srv.grpcServer.GracefulStop()
 		}

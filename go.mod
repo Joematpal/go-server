@@ -3,7 +3,6 @@ module github.com/digital-dream-labs/go-server
 go 1.16
 
 require (
-	github.com/grpc-ecosystem/grpc-gateway v1.16.0
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.5.0
 	github.com/philips/go-bindata-assetfs v0.0.0-20150624150248-3dcc96556217
 	github.com/philips/grpc-gateway-example v0.0.0-20170619012617-a269bcb5931c
