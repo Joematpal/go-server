@@ -39,6 +39,7 @@ func NewApp() *cli.App {
 					rg := route_guide.New(logr)
 					streamer.RegisterStreamerServer(s, rg)
 				}),
+				grpcp.WithGatewayServiceHandlers(streamer.RegisterStreamerHandlerFromEndpoint),
 				grpcp.WithLogger(logr),
 			}
 
@@ -48,6 +49,16 @@ func NewApp() *cli.App {
 
 			if port := c.String(serverf.GRPCPort); port != "" {
 				opts = append(opts, grpcp.WithPort(port))
+			}
+
+			if tls := c.Bool(serverf.GRPCTLS); tls {
+				opts = append(opts, grpcp.WithTLS(tls))
+			}
+			if pubCert := c.String(serverf.GRPCPubCert); pubCert != "" {
+				opts = append(opts, grpcp.WithPubCert(pubCert))
+			}
+			if privCert := c.String(serverf.GRPCPrivCert); privCert != "" {
+				opts = append(opts, grpcp.WithPrivCert(privCert))
 			}
 
 			srv, err := grpcp.New(opts...)

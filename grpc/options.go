@@ -67,3 +67,10 @@ func WithServerOptions(serverOpts ...grpc.ServerOption) Option {
 		return nil
 	})
 }
+
+func WithGatewayServiceHandlers(serverHandlers ...GatewayServiceHandler) Option {
+	return optionApplyFunc(func(s *Server) error {
+		s.gatewayServiceHandlers = append(s.gatewayServiceHandlers, serverHandlers...)
+		return nil
+	})
+}

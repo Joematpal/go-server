@@ -7,22 +7,23 @@ import (
 	"google.golang.org/grpc/credentials"
 )
 
-func ParseCredentials(pubCert, privCert string) (credentials.TransportCredentials, error) {
-	creds, err := credentials.NewServerTLSFromFile(pubCert, privCert)
+func Credentials(certs tls.Certificate) credentials.TransportCredentials {
+	return credentials.NewTLS(&tls.Config{Certificates: []tls.Certificate{certs}})
+}
+func ParseCertificates(pubCert, privCert string) (tls.Certificate, error) {
+	var certs tls.Certificate
+	var err error
+	certs, err = tls.LoadX509KeyPair(pubCert, privCert)
 	if err != nil {
-		pubCert, err := base64.StdEncoding.DecodeString(pubCert)
+		pubCertByte, err := base64.StdEncoding.DecodeString(pubCert)
 		if err != nil {
-			return nil, err
+			return certs, err
 		}
-		privCert, err := base64.StdEncoding.DecodeString(privCert)
+		privCertByte, err := base64.StdEncoding.DecodeString(privCert)
 		if err != nil {
-			return nil, err
+			return certs, err
 		}
-		creds, err := tls.X509KeyPair(pubCert, privCert)
-		if err != nil {
-			return nil, err
-		}
-		return credentials.NewTLS(&tls.Config{Certificates: []tls.Certificate{creds}}), nil
+		return tls.X509KeyPair(pubCertByte, privCertByte)
 	}
-	return creds, nil
+	return certs, nil
 }

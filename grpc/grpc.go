@@ -2,26 +2,29 @@ package grpc
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"net"
 	"net/http"
 
+	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 )
 
 type Server struct {
-	host             string
-	port             string
-	tls              bool
-	pubCert          string
-	privCert         string
-	listener         net.Listener
-	serverOptions    []grpc.ServerOption
-	grpcServer       *grpc.Server
-	httpServer       *http.Server
-	logger           logger
-	registerServices []RegisterService
+	host                   string
+	port                   string
+	tls                    bool
+	pubCert                string
+	privCert               string
+	listener               net.Listener
+	serverOptions          []grpc.ServerOption
+	grpcServer             *grpc.Server
+	httpServer             *http.Server
+	logger                 logger
+	registerServices       []RegisterService
+	gatewayServiceHandlers []GatewayServiceHandler
 }
 
 type logger interface {
@@ -30,6 +33,7 @@ type logger interface {
 }
 
 type RegisterService = func(*grpc.Server)
+type GatewayServiceHandler = func(ctx context.Context, mux *runtime.ServeMux, endpoint string, opts []grpc.DialOption) (err error)
 
 // set up grpc connection
 // Takes in a anonymous function that registers the service
@@ -53,11 +57,11 @@ func New(opts ...Option) (*Server, error) {
 	}
 
 	if s.IsTLS() {
-		if creds, err := ParseCredentials(s.pubCert, s.privCert); err != nil {
-			return nil, err
-		} else {
-			s.serverOptions = append(s.serverOptions, grpc.Creds(creds))
+		certs, err := ParseCertificates(s.pubCert, s.privCert)
+		if err != nil {
+			return nil, fmt.Errorf("parse certs: %v", err)
 		}
+		s.serverOptions = append(s.serverOptions, grpc.Creds(Credentials(certs)))
 	}
 
 	s.grpcServer = grpc.NewServer(s.serverOptions...)
@@ -66,9 +70,14 @@ func New(opts ...Option) (*Server, error) {
 		service(s.grpcServer)
 	}
 
-	// TODO: Register the http server for the GRPC Gateway.
-
-	// TODO:  and Register the grpc client on the mux runtime; pbSomething.RegisterSomerthingHander
+	// Creates GRPC gateway if needed
+	fmt.Println("Before gRPC gateway", s.IsTLS(), len(s.gatewayServiceHandlers) > 0)
+	if len(s.gatewayServiceHandlers) > 0 && s.IsTLS() {
+		fmt.Println("running gRPC gateway")
+		if err := s.newGRPCGateway(); err != nil {
+			return nil, err
+		}
+	}
 
 	s.Infof("listening: %s:%s", s.host, s.port)
 	return s, nil
@@ -111,7 +120,10 @@ func (srv *Server) StartWithContext(ctx context.Context) error {
 
 	eg, ctx := errgroup.WithContext(ctx)
 
-	if srv.grpcServer != nil {
+	// Run grpc server only when gateway is not running - because httpServer has a mux to grpc
+	// and dont want two listeners on same port
+	if srv.grpcServer != nil && srv.httpServer == nil {
+		fmt.Println("Running gRPC")
 		eg.Go(func() error {
 			return srv.grpcServer.Serve(srv.listener)
 		})
@@ -119,8 +131,9 @@ func (srv *Server) StartWithContext(ctx context.Context) error {
 
 	// before we run the gateway server we need to check if we even need it.
 	if srv.httpServer != nil {
+		fmt.Println("Running http")
 		eg.Go(func() error {
-			return srv.httpServer.ListenAndServe()
+			return srv.httpServer.Serve(tls.NewListener(srv.listener, srv.httpServer.TLSConfig))
 		})
 	}
 

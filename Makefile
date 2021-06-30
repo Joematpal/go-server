@@ -19,6 +19,19 @@ example_server:
 	GRPC_PORT=9000 \
 	go run main.go
 
+example_server_gateway:
+	cd example/server && \
+	LOG_ENV=dev \
+	LOG_ENCODING=console \
+	LOG_LEVEL=fatal \
+	GRPC_HOST=localhost \
+	GRPC_PORT=9000 \
+	GRPC_TLS=true \
+	GRPC_PUB_CERT=../../certs/localhost.pem \
+	GRPC_PRIV_CERT=../../certs/localhost-key.pem \
+	go run main.go
+
+
 .PHONY: proto
 proto: go.mod bin/protoc bin/protoc-gen-go bin/protobuf
 	@./scripts/gen-proto-stubs
