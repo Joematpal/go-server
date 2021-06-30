@@ -19,7 +19,7 @@ func New(logr logger.Logger) *RouteGuide {
 	}
 }
 
-func (rg *RouteGuide) RecordRoute(stream streamer.Streamer_StreamPointServer) error {
+func (rg *RouteGuide) StreamPoint(stream streamer.Streamer_StreamPointServer) error {
 	for {
 		point, err := stream.Recv()
 		if err == io.EOF {
