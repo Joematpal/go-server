@@ -13,3 +13,4 @@ require (
 	google.golang.org/grpc v1.38.0
 )
 
+replace github.com/digital-dream-labs/go-server => ../../
