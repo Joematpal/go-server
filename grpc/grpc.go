@@ -13,18 +13,30 @@ import (
 )
 
 type Server struct {
-	host                   string
-	port                   string
-	tls                    bool
-	pubCert                string
-	privCert               string
-	listener               net.Listener
-	serverOptions          []grpc.ServerOption
-	grpcServer             *grpc.Server
-	httpServer             *http.Server
-	logger                 logger
-	registerServices       []RegisterService
-	gatewayServiceHandlers []GatewayServiceHandler
+	host             string
+	port             string
+	tls              bool
+	pubCert          string
+	privCert         string
+	listener         net.Listener
+	serverOptions    []grpc.ServerOption
+	grpcServer       *grpc.Server
+	httpServer       *http.Server
+	logger           logger
+	registerServices []RegisterService
+
+	versionPath string
+
+	// Gateway
+	gwConn                  *grpc.ClientConn
+	gwHost                  string
+	gwPort                  string
+	gatewayServiceHandlers  []GatewayServiceHandler
+	gatewayServerMuxOptions []runtime.ServeMuxOption
+	gatewayDialOptions      []grpc.DialOption
+
+	// Swagger
+	swaggerFile string
 }
 
 type logger interface {
@@ -33,14 +45,17 @@ type logger interface {
 }
 
 type RegisterService = func(*grpc.Server)
-type GatewayServiceHandler = func(ctx context.Context, mux *runtime.ServeMux, endpoint string, opts []grpc.DialOption) (err error)
+type GatewayServiceHandler = func(ctx context.Context, mux *runtime.ServeMux, conn *grpc.ClientConn) (err error)
 
 // set up grpc connection
 // Takes in a anonymous function that registers the service
 func New(opts ...Option) (*Server, error) {
 	s := &Server{
-		serverOptions:    []grpc.ServerOption{},
-		registerServices: []RegisterService{},
+		serverOptions:           []grpc.ServerOption{},
+		registerServices:        []RegisterService{},
+		gatewayServerMuxOptions: []runtime.ServeMuxOption{},
+		gatewayServiceHandlers:  []GatewayServiceHandler{},
+		gatewayDialOptions:      []grpc.DialOption{},
 	}
 	var err error
 	for _, opt := range opts {
@@ -56,33 +71,10 @@ func New(opts ...Option) (*Server, error) {
 		}
 	}
 
-	if s.IsTLS() {
-		certs, err := ParseCertificates(s.pubCert, s.privCert)
-		if err != nil {
-			return nil, fmt.Errorf("parse certs: %v", err)
-		}
-		s.serverOptions = append(s.serverOptions, grpc.Creds(Credentials(certs)))
-	}
-
-	s.grpcServer = grpc.NewServer(s.serverOptions...)
-
-	for _, service := range s.registerServices {
-		service(s.grpcServer)
-	}
-
-	// Creates GRPC gateway if needed
-	if len(s.gatewayServiceHandlers) > 0 && s.IsTLS() {
-		s.Debugf("running gRPC gateway")
-		if err := s.newGRPCGateway(); err != nil {
-			return nil, err
-		}
-	}
-
-	s.Infof("listening: %s:%s", s.host, s.port)
 	return s, nil
 }
 
-// Takes the receiver and and applies it to the server
+// Takes the receiver and copies them to the new server
 func (s *Server) applyOption(server *Server) error {
 	if s.host != "" {
 		server.host = s.host
@@ -103,51 +95,122 @@ func (s *Server) applyOption(server *Server) error {
 	if s.listener != nil {
 		server.listener = s.listener
 	}
+
 	if len(s.serverOptions) > 0 {
 		server.serverOptions = append(server.serverOptions, s.serverOptions...)
 	}
 
+	if len(s.gatewayServerMuxOptions) > 0 {
+		server.gatewayServerMuxOptions = append(server.gatewayServerMuxOptions, s.gatewayServerMuxOptions...)
+	}
+
+	if len(s.gatewayServiceHandlers) > 0 {
+		server.gatewayServiceHandlers = append(server.gatewayServiceHandlers, s.gatewayServiceHandlers...)
+	}
+
+	if len(s.gatewayDialOptions) > 0 {
+		server.gatewayDialOptions = append(server.gatewayDialOptions, s.gatewayDialOptions...)
+	}
+
+	// This shouldn't ever need to be copied, but it probably better to be safe than sorry
+	if s.gwConn != nil {
+		server.gwConn = s.gwConn
+	}
+
+	if s.gwHost != "" {
+		server.gwHost = s.gwHost
+	}
+
+	if s.gwPort != "" {
+		server.gwPort = s.gwPort
+	}
+
+	if s.swaggerFile != "" {
+		server.swaggerFile = s.swaggerFile
+	}
+
+	if s.versionPath != "" {
+		server.versionPath = s.versionPath
+	}
+
 	return nil
+}
+
+func (s *Server) GetVersionPath() string {
+	if s.versionPath == "" {
+		return "v1"
+	}
+	return s.versionPath
 }
 
 func (s *Server) IsTLS() bool {
 	return s.tls
 }
 
-func (srv *Server) StartWithContext(ctx context.Context) error {
+func (s *Server) StartWithContext(ctx context.Context) error {
 	// this will be difficult because of it will need to handle two different go routines for spinning off the grpc server and the http gateway server
+
+	if s.IsTLS() {
+		certs, err := ParseCertificates(s.pubCert, s.privCert)
+		if err != nil {
+			return fmt.Errorf("parse certs: %v", err)
+		}
+		s.serverOptions = append(s.serverOptions, grpc.Creds(Credentials(certs)))
+	}
+
+	s.grpcServer = grpc.NewServer(s.serverOptions...)
+
+	for _, service := range s.registerServices {
+		service(s.grpcServer)
+	}
+
+	// Creates GRPC gateway if needed
+	if len(s.gatewayServiceHandlers) > 0 && s.IsTLS() {
+		s.Debugf("running gRPC gateway")
+		if err := s.newGRPCGateway(ctx); err != nil {
+			return err
+		}
+	}
 
 	eg, ctx := errgroup.WithContext(ctx)
 
 	// Run grpc server only when gateway is not running - because httpServer has a mux to grpc
 	// and dont want two listeners on same port
-	if srv.grpcServer != nil && srv.httpServer == nil {
-		srv.Debugf("running gRPC")
+	if s.grpcServer != nil && s.httpServer == nil {
+		s.Debugf("running gRPC")
 		eg.Go(func() error {
-			return srv.grpcServer.Serve(srv.listener)
+			return s.grpcServer.Serve(s.listener)
 		})
 	}
 
 	// before we run the gateway server we need to check if we even need it.
-	if srv.httpServer != nil {
-		srv.Debugf("running http")
+	if s.httpServer != nil {
+		s.Debugf("running http")
 		eg.Go(func() error {
-			return srv.httpServer.Serve(tls.NewListener(srv.listener, srv.httpServer.TLSConfig))
+			return s.httpServer.Serve(tls.NewListener(s.listener, s.httpServer.TLSConfig))
 		})
 	}
 
 	eg.Go(func() error {
 		<-ctx.Done()
-		srv.Debugf("start shutdown")
-		if srv.grpcServer != nil {
-			srv.grpcServer.GracefulStop()
+		s.Debugf("start shutdown")
+		if s.grpcServer != nil {
+			s.grpcServer.GracefulStop()
 		}
-		if srv.httpServer != nil {
-			srv.httpServer.Shutdown(ctx)
+		if s.httpServer != nil {
+			if err := s.httpServer.Shutdown(ctx); err != nil {
+				s.Debugf("http shutdown: %v", err)
+			}
+		}
+		if s.gwConn != nil {
+			if err := s.gwConn.Close(); err != nil {
+				s.Debugf("gateway client conn: %v", err)
+			}
 		}
 		return ctx.Err()
 	})
 
+	s.Infof("listening: %s:%s", s.host, s.port)
 	return eg.Wait()
 }
 
