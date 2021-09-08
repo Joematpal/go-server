@@ -21,16 +21,16 @@ func flagNameToEnv(name string) string {
 }
 
 var (
-	GRPCHost            = "grpc-host"
-	GRPCPort            = "grpc-port"
-	GRPCTLS             = "grpc-tls"
-	GRPCPubCert         = "grpc-pub-cert"
-	GRPCPrivCert        = "grpc-priv-cert"
-	GRPCGatewayHost     = "grpc-gw-host"
-	GRPCGatewayPort     = "grpc-gw-port"
-	GRPCGatewayPubCert  = "grpc-gw-pub-cert"
-	GRPCGatewayPrivCert = "grpc-gw-priv-cert"
-	SwaggerFile         = "swagger-file"
+	GRPCHost                  = "grpc-host"
+	GRPCPort                  = "grpc-port"
+	GRPCTLS                   = "grpc-tls"
+	GRPCPubCert               = "grpc-pub-cert"
+	GRPCPrivCert              = "grpc-priv-cert"
+	GRPCGatewayClientHost     = "grpc-gwc-host"
+	GRPCGatewayClientPort     = "grpc-gwc-port"
+	GRPCGatewayClientPubCert  = "grpc-gwc-pub-cert"
+	GRPCGatewayClientPrivCert = "grpc-gwc-priv-cert"
+	SwaggerFile               = "swagger-file"
 )
 
 var GRPCFlags = []cli.Flag{
@@ -55,24 +55,24 @@ var GRPCFlags = []cli.Flag{
 		EnvVars: flagNamesToEnv(GRPCPrivCert),
 	},
 	&cli.StringFlag{
-		Name:    GRPCGatewayHost,
-		Usage:   "used to set the gateway host if it is different than the address for the local service",
-		EnvVars: flagNamesToEnv(GRPCGatewayHost),
+		Name:    GRPCGatewayClientHost,
+		Usage:   "used to set the gateway client host if different than local service",
+		EnvVars: flagNamesToEnv(GRPCGatewayClientHost),
 	},
 	&cli.StringFlag{
-		Name:    GRPCGatewayPort,
-		Usage:   "used to set the gateway port if it is different than the address for the local service",
-		EnvVars: flagNamesToEnv(GRPCGatewayPort),
+		Name:    GRPCGatewayClientPort,
+		Usage:   "used to set the gateway client port if different than local service",
+		EnvVars: flagNamesToEnv(GRPCGatewayClientPort),
 	},
 	&cli.StringFlag{
-		Name:    GRPCGatewayPubCert,
+		Name:    GRPCGatewayClientPubCert,
 		Usage:   "used to set the gateway certs if they are different than the ones for the local service",
-		EnvVars: flagNamesToEnv(GRPCGatewayPubCert),
+		EnvVars: flagNamesToEnv(GRPCGatewayClientPubCert),
 	},
 	&cli.StringFlag{
-		Name:    GRPCGatewayPrivCert,
+		Name:    GRPCGatewayClientPrivCert,
 		Usage:   "used to set the gateway certs if they are different than the ones for the local service",
-		EnvVars: flagNamesToEnv(GRPCGatewayPrivCert),
+		EnvVars: flagNamesToEnv(GRPCGatewayClientPrivCert),
 	},
 	&cli.StringFlag{
 		Name:    SwaggerFile,
