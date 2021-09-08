@@ -39,7 +39,7 @@ func NewApp() *cli.App {
 					rg := route_guide.New(logr)
 					streamer.RegisterStreamerServer(s, rg)
 				}),
-				grpcp.WithGatewayServiceHandlers(streamer.RegisterStreamerHandlerFromEndpoint),
+				grpcp.WithGatewayServiceHandlers(streamer.RegisterStreamerHandler),
 				grpcp.WithLogger(logr),
 			}
 

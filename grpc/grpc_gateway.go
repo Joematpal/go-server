@@ -4,51 +4,70 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"mime"
 	"net/http"
+	"path/filepath"
 	"strings"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
-	assetfs "github.com/philips/go-bindata-assetfs"
-	"github.com/philips/grpc-gateway-example/pkg/ui/data/swagger"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )
 
+// Get Gateway Endpoint check to see if a different Gateway Address is set
+func (s *Server) getGatewayEndpoint() string {
+	if s.gwHost != "" && s.gwPort != "" {
+		return fmt.Sprintf("%s:%s", s.gwHost, s.gwPort)
+	}
+	return fmt.Sprintf("%s:%s", s.host, s.port)
+}
+
 // Register the http server for the GRPC Gateway.
 // and Register the grpc client on the mux runtime (handler)
-func (s *Server) newGRPCGateway() error {
-	var creds credentials.TransportCredentials
-	var err error
-	certs, err := ParseCertificates(s.pubCert, s.privCert)
-	if err != nil {
-		return fmt.Errorf("parse certs: %v", err)
-	}
-	creds = Credentials(certs)
+func (s *Server) newGRPCGateway(ctx context.Context) error {
 
-	// Register the gateway service handlers
-	ctx := context.Background()
-	gwmux := runtime.NewServeMux()
-	endpoint := fmt.Sprintf("%s:%s", s.host, s.port)
-	dopts := []grpc.DialOption{grpc.WithTransportCredentials(creds)}
+	dialOpts := []grpc.DialOption{}
+	// Dial Credentials need to come from the outside if they are different than the local service
+	// If no Certificates are pass we assume they are running on the same server
+	if len(s.gatewayDialOptions) == 0 {
+		var creds credentials.TransportCredentials
+		var err error
+		certs, err := ParseCertificates(s.pubCert, s.privCert)
+		if err != nil {
+			return fmt.Errorf("parse certs: %v", err)
+		}
+		creds = Credentials(certs)
+		dialOpts = append(dialOpts, grpc.WithTransportCredentials(creds))
+	}
+
+	dialOpts = append(dialOpts, s.gatewayDialOptions...)
+
+	// Register the gateway service handlers; service handlers currently only talk to same grpc.ClientConn
+	// (joematpal) I do not see a use case where we need to have maintain a one to many type of connection for the Gateway
+	gwmux := runtime.NewServeMux(s.gatewayServerMuxOptions...)
+	endpoint := s.getGatewayEndpoint()
+
+	var err error
+	s.gwConn, err = grpc.DialContext(ctx, endpoint, dialOpts...)
+	if err != nil {
+		return fmt.Errorf("dial context: %v", err)
+	}
 
 	for _, handler := range s.gatewayServiceHandlers {
-		if err := handler(ctx, gwmux, endpoint, dopts); err != nil {
+		if err := handler(ctx, gwmux, s.gwConn); err != nil {
 			s.Debugf("serve: %v\n", err)
 			return err
 		}
 	}
 
 	mux := http.NewServeMux()
-	// TODO: Re-enable swagger
-	// Create swagger endpoint
-	// mux.HandleFunc("/swagger.json", func(w http.ResponseWriter, req *http.Request) {
-	// 	io.Copy(w, strings.NewReader(pb.Swagger))
-	// })
 
-	mux.Handle("/", gwmux)
-	// TODO: Re-enable swagger
-	// serveSwagger(mux)
+	version := s.GetVersionPath()
+
+	mux.Handle(filepath.Join("/", version, "/api"), gwmux)
+
+	if s.swaggerFile != "" {
+		mux.HandleFunc(filepath.Join("/", version, "/swagger.json"), serveSwaggerJSON(s.swaggerFile))
+	}
 
 	// Register the http server for gRPC gateway
 	if certs, err := ParseCertificates(s.pubCert, s.privCert); err != nil {
@@ -67,17 +86,10 @@ func (s *Server) newGRPCGateway() error {
 	return nil
 }
 
-func serveSwagger(mux *http.ServeMux) {
-	mime.AddExtensionType(".svg", "image/svg+xml")
-
-	// Expose files in third_party/swagger-ui/ on <host>/swagger-ui
-	fileServer := http.FileServer(&assetfs.AssetFS{
-		Asset:    swagger.Asset,
-		AssetDir: swagger.AssetDir,
-		Prefix:   "third_party/swagger-ui",
-	})
-	prefix := "/swagger-ui/"
-	mux.Handle(prefix, http.StripPrefix(prefix, fileServer))
+func serveSwaggerJSON(filepath string) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, filepath)
+	}
 }
 
 // grpcHandlerFunc returns an http.Handler that delegates to grpcServer on incoming gRPC
