@@ -57,6 +57,7 @@ func New(opts ...Option) (*Server, error) {
 		gatewayServiceHandlers:  []GatewayServiceHandler{},
 		gatewayDialOptions:      []grpc.DialOption{},
 	}
+
 	var err error
 	for _, opt := range opts {
 		if err := opt.applyOption(s); err != nil {
@@ -136,13 +137,6 @@ func (s *Server) applyOption(server *Server) error {
 	return nil
 }
 
-func (s *Server) GetVersionPath() string {
-	if s.versionPath == "" {
-		return "v1"
-	}
-	return s.versionPath
-}
-
 func (s *Server) IsTLS() bool {
 	return s.tls
 }
@@ -158,14 +152,16 @@ func (s *Server) StartWithContext(ctx context.Context) error {
 		s.serverOptions = append(s.serverOptions, grpc.Creds(Credentials(certs)))
 	}
 
-	s.grpcServer = grpc.NewServer(s.serverOptions...)
+	if len(s.serverOptions) != 0 {
+		s.grpcServer = grpc.NewServer(s.serverOptions...)
+	}
 
 	for _, service := range s.registerServices {
 		service(s.grpcServer)
 	}
 
 	// Creates GRPC gateway if needed
-	if len(s.gatewayServiceHandlers) > 0 && s.IsTLS() {
+	if len(s.gatewayServiceHandlers) > 0 {
 		s.Debugf("running gRPC gateway")
 		if err := s.newGRPCGateway(ctx); err != nil {
 			return err
@@ -185,9 +181,12 @@ func (s *Server) StartWithContext(ctx context.Context) error {
 
 	// before we run the gateway server we need to check if we even need it.
 	if s.httpServer != nil {
-		s.Debugf("running http")
 		eg.Go(func() error {
-			return s.httpServer.Serve(tls.NewListener(s.listener, s.httpServer.TLSConfig))
+			s.Infof("http listening at %s", s.httpServer.Addr)
+			if s.IsTLS() {
+				return s.httpServer.Serve(tls.NewListener(s.listener, s.httpServer.TLSConfig))
+			}
+			return s.httpServer.Serve(s.listener)
 		})
 	}
 
@@ -210,7 +209,6 @@ func (s *Server) StartWithContext(ctx context.Context) error {
 		return ctx.Err()
 	})
 
-	s.Infof("listening: %s:%s", s.host, s.port)
 	return eg.Wait()
 }
 

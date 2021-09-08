@@ -29,7 +29,7 @@ var (
 	GRPCGatewayHost     = "grpc-gw-host"
 	GRPCGatewayPort     = "grpc-gw-port"
 	GRPCGatewayPubCert  = "grpc-gw-pub-cert"
-	GRPCGatewayPrivCert = "grpc-gw-prib-cert"
+	GRPCGatewayPrivCert = "grpc-gw-priv-cert"
 	SwaggerFile         = "swagger-file"
 )
 

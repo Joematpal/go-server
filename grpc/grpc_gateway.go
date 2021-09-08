@@ -5,7 +5,6 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net/http"
-	"path/filepath"
 	"strings"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
@@ -54,33 +53,39 @@ func (s *Server) newGRPCGateway(ctx context.Context) error {
 
 	for _, handler := range s.gatewayServiceHandlers {
 		if err := handler(ctx, gwmux, s.gwConn); err != nil {
-			s.Debugf("serve: %v\n", err)
+			s.Debugf("register service handler: %v\n", err)
 			return err
 		}
 	}
 
 	mux := http.NewServeMux()
 
-	version := s.GetVersionPath()
-
-	mux.Handle(filepath.Join("/", version, "/api"), gwmux)
+	mux.Handle("/", gwmux)
 
 	if s.swaggerFile != "" {
-		mux.HandleFunc(filepath.Join("/", version, "/swagger.json"), serveSwaggerJSON(s.swaggerFile))
+		mux.HandleFunc("/swagger.json", serveSwaggerJSON(s.swaggerFile))
+	}
+
+	s.httpServer = &http.Server{
+		Addr: fmt.Sprintf("%s:%s", s.host, s.port),
 	}
 
 	// Register the http server for gRPC gateway
-	if certs, err := ParseCertificates(s.pubCert, s.privCert); err != nil {
-		return err
-	} else {
-		s.httpServer = &http.Server{
-			Addr:    endpoint,
-			Handler: grpcHandlerFunc(s.grpcServer, mux),
-			TLSConfig: &tls.Config{
-				Certificates: []tls.Certificate{certs},
-				NextProtos:   []string{"h2"},
-			},
+	if s.IsTLS() {
+		certs, err := ParseCertificates(s.pubCert, s.privCert)
+		if err != nil {
+			return err
 		}
+		s.httpServer.TLSConfig = &tls.Config{
+			Certificates: []tls.Certificate{certs},
+			NextProtos:   []string{"h2"},
+		}
+	}
+
+	if s.grpcServer != nil {
+		s.httpServer.Handler = grpcHandlerFunc(s.grpcServer, mux)
+	} else {
+		s.httpServer.Handler = mux
 	}
 
 	return nil
