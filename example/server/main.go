@@ -25,8 +25,8 @@ func NewApp() *cli.App {
 		Flags: flags.Join(serverf.GRPCFlags, loggerf.LogFlags),
 		Action: func(c *cli.Context) error {
 			logOpts := []logger.Option{
-				logger.WithEnv(logger.LogEnv(c.Int(loggerf.LogEnv))),
-				logger.WithLevel(logger.LogLevel(c.Int(loggerf.LogLevel))),
+				logger.WithEnv(c.String(loggerf.LogEnv)),
+				logger.WithLevel(c.String(loggerf.LogLevel)),
 				logger.WithLogStacktrace(c.Bool(loggerf.LogStacktrace)),
 			}
 			logr, err := logger.New(logOpts...)
