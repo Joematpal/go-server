@@ -4,7 +4,6 @@ import (
 	"crypto/tls"
 	"encoding/base64"
 	"fmt"
-	"os"
 
 	"google.golang.org/grpc/credentials"
 )
@@ -18,10 +17,10 @@ func ParseCertificates(pubCert, privCert string) (tls.Certificate, error) {
 	var err error
 	certs, err = tls.LoadX509KeyPair(pubCert, privCert)
 	fmt.Printf("ParseCertificates err: %+v\n ", err)
-	certPEMBlock, err := os.ReadFile(pubCert)
-	fmt.Printf("ParseCertificates: certPEMBlock: %+v, err: %+v\n ", certPEMBlock, err)
-	keyPEMBlock, err := os.ReadFile(privCert)
-	fmt.Printf("ParseCertificates: keyPEMBlock: %+v, err: %+v\n ", keyPEMBlock, err)
+	// certPEMBlock, err := os.ReadFile(pubCert)
+	// fmt.Printf("ParseCertificates: certPEMBlock: %+v, err: %+v\n ", certPEMBlock, err)
+	// keyPEMBlock, err := os.ReadFile(privCert)
+	// fmt.Printf("ParseCertificates: keyPEMBlock: %+v, err: %+v\n ", keyPEMBlock, err)
 
 	if err != nil {
 		pubCertByte, err := base64.StdEncoding.DecodeString(pubCert)
