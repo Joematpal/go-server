@@ -146,6 +146,8 @@ func (s *Server) StartWithContext(ctx context.Context) error {
 
 	if s.IsTLS() {
 		certs, err := ParseCertificates(s.pubCert, s.privCert)
+		s.Debugf("pubcert: %v", s.pubCert)
+		s.Debugf("privCert: %v", s.privCert)
 		if err != nil {
 			return fmt.Errorf("parse certs: %v", err)
 		}
@@ -173,7 +175,7 @@ func (s *Server) StartWithContext(ctx context.Context) error {
 	// Run grpc server only when gateway is not running - because httpServer has a mux to grpc
 	// and dont want two listeners on same port
 	if s.grpcServer != nil && s.httpServer == nil {
-		s.Debugf("running gRPC")
+		s.Debugf("running gRPC at %s", s.port)
 		eg.Go(func() error {
 			return s.grpcServer.Serve(s.listener)
 		})
