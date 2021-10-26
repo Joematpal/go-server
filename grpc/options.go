@@ -109,7 +109,7 @@ func WithGatewayDialCredentials(pubCert, privCert string) Option {
 	return optionApplyFunc(func(s *Server) error {
 		var creds credentials.TransportCredentials
 		var err error
-		certs, err := ParseCertificates(s.pubCert, s.privCert)
+		certs, err := ParseCertificates(pubCert, privCert)
 		if err != nil {
 			return fmt.Errorf("parse certs: %v", err)
 		}
