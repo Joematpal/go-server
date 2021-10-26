@@ -44,7 +44,7 @@ func (s *Server) newGRPCGateway(ctx context.Context) error {
 	// (joematpal) I do not see a use case where we need to have maintain a one to many type of connection for the Gateway
 	gwmux := runtime.NewServeMux(s.gatewayServerMuxOptions...)
 	endpoint := s.getGatewayEndpoint()
-
+	s.Debugf("gateway host: %v", endpoint)
 	var err error
 	s.gwConn, err = grpc.DialContext(ctx, endpoint, dialOpts...)
 	if err != nil {

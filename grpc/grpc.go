@@ -166,7 +166,7 @@ func (s *Server) StartWithContext(ctx context.Context) error {
 	if len(s.gatewayServiceHandlers) > 0 {
 		s.Debugf("running gRPC gateway")
 		if err := s.newGRPCGateway(ctx); err != nil {
-			return err
+			return fmt.Errorf("new grpc gateway: %v", err)
 		}
 	}
 
