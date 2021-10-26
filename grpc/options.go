@@ -83,6 +83,7 @@ func WithGatewayServiceHandlers(serverHandlers ...GatewayServiceHandler) Option 
 
 func WithGatewayServerMuxOptions(opts ...runtime.ServeMuxOption) Option {
 	return optionApplyFunc(func(s *Server) error {
+		s.gatewayServerMuxOptions = opts
 		return nil
 	})
 }

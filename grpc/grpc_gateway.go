@@ -42,6 +42,7 @@ func (s *Server) newGRPCGateway(ctx context.Context) error {
 
 	// Register the gateway service handlers; service handlers currently only talk to same grpc.ClientConn
 	// (joematpal) I do not see a use case where we need to have maintain a one to many type of connection for the Gateway
+
 	gwmux := runtime.NewServeMux(s.gatewayServerMuxOptions...)
 	endpoint := s.getGatewayEndpoint()
 	s.Debugf("gateway host: %v", endpoint)
