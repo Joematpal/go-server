@@ -3,6 +3,7 @@ package grpc
 import (
 	"crypto/tls"
 	"encoding/base64"
+	"fmt"
 
 	"google.golang.org/grpc/credentials"
 )
@@ -15,6 +16,7 @@ func ParseCertificates(pubCert, privCert string) (tls.Certificate, error) {
 	var certs tls.Certificate
 	var err error
 	certs, err = tls.LoadX509KeyPair(pubCert, privCert)
+	fmt.Printf("ParseCertificates err: %+v\n ", err)
 	if err != nil {
 		pubCertByte, err := base64.StdEncoding.DecodeString(pubCert)
 		if err != nil {
