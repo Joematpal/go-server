@@ -45,7 +45,9 @@ func (s *Server) newGRPCGateway(ctx context.Context) error {
 
 	gwmux := runtime.NewServeMux(s.gatewayServerMuxOptions...)
 	endpoint := s.getGatewayEndpoint()
+
 	s.Debugf("gateway host: %v", endpoint)
+
 	var err error
 	s.gwConn, err = grpc.DialContext(ctx, endpoint, dialOpts...)
 	if err != nil {
