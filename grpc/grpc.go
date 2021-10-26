@@ -45,6 +45,7 @@ type logger interface {
 }
 
 type RegisterService = func(*grpc.Server)
+
 type GatewayServiceHandler = func(ctx context.Context, mux *runtime.ServeMux, conn *grpc.ClientConn) (err error)
 
 // set up grpc connection

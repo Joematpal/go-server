@@ -52,6 +52,8 @@ func (s *Server) newGRPCGateway(ctx context.Context) error {
 		return fmt.Errorf("dial context: %v", err)
 	}
 
+	s.Debugf("gw conn state: %v", s.gwConn.GetState())
+
 	for _, handler := range s.gatewayServiceHandlers {
 		if err := handler(ctx, gwmux, s.gwConn); err != nil {
 			s.Debugf("register service handler: %v\n", err)
