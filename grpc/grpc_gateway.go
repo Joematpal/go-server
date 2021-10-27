@@ -68,7 +68,7 @@ func (s *Server) newGRPCGateway(ctx context.Context) error {
 	mux.Handle("/", gwmux)
 
 	if s.swaggerFile != "" {
-		mux.HandleFunc("/swagger.json", serveSwaggerJSON(s.swaggerFile))
+		mux.HandleFunc("/swagger.json", s.serveSwaggerJSON(s.swaggerFile))
 	}
 
 	s.httpServer = &http.Server{
@@ -96,7 +96,9 @@ func (s *Server) newGRPCGateway(ctx context.Context) error {
 	return nil
 }
 
-func serveSwaggerJSON(filepath string) func(w http.ResponseWriter, r *http.Request) {
+func (s *Server) serveSwaggerJSON(filepath string) func(w http.ResponseWriter, r *http.Request) {
+	s.Debugf("server swagger.json: %s", filepath)
+
 	return func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, filepath)
 	}
