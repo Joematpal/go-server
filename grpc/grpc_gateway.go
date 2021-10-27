@@ -68,7 +68,7 @@ func (s *Server) newGRPCGateway(ctx context.Context) error {
 	mux.Handle("/", gwmux)
 
 	if s.swaggerFile != "" {
-		mux.HandleFunc("/v1/swagger.json", s.serveSwaggerJSON(s.swaggerFile))
+		mux.HandleFunc("/spec/v1/swagger.json", s.serveSwaggerJSON(s.swaggerFile))
 	}
 
 	s.httpServer = &http.Server{
