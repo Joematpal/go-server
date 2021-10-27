@@ -97,9 +97,9 @@ func (s *Server) newGRPCGateway(ctx context.Context) error {
 }
 
 func (s *Server) serveSwaggerJSON(filepath string) func(w http.ResponseWriter, r *http.Request) {
-	s.Debugf("server swagger.json: %s", filepath)
 
 	return func(w http.ResponseWriter, r *http.Request) {
+		s.Debugf("server swagger.json: %s", filepath)
 		http.ServeFile(w, r, filepath)
 	}
 }
