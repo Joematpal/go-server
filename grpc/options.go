@@ -135,3 +135,10 @@ func WithVersionPath(versionPath string) Option {
 		return nil
 	})
 }
+
+func WithSwaggerFile(swaggerFile string) Option {
+	return optionApplyFunc(func(s *Server) error {
+		s.swaggerFile = swaggerFile
+		return nil
+	})
+}
