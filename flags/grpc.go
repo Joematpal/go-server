@@ -77,6 +77,7 @@ var GRPCFlags = []cli.Flag{
 	&cli.StringFlag{
 		Name:    SwaggerFile,
 		Usage:   "set the filepath to `swagger.json`",
+		Value:   "/spec/v1/swagger.json",
 		EnvVars: flagNamesToEnv(SwaggerFile),
 	},
 }

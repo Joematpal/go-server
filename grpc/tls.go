@@ -15,6 +15,7 @@ func ParseCertificates(pubCert, privCert string) (tls.Certificate, error) {
 	var certs tls.Certificate
 	var err error
 	certs, err = tls.LoadX509KeyPair(pubCert, privCert)
+
 	if err != nil {
 		pubCertByte, err := base64.StdEncoding.DecodeString(pubCert)
 		if err != nil {

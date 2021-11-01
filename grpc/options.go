@@ -83,6 +83,14 @@ func WithGatewayServiceHandlers(serverHandlers ...GatewayServiceHandler) Option 
 
 func WithGatewayServerMuxOptions(opts ...runtime.ServeMuxOption) Option {
 	return optionApplyFunc(func(s *Server) error {
+		s.gatewayServerMuxOptions = opts
+		return nil
+	})
+}
+
+func WithGatewayService(serverHandlers ...GatewayServiceHandler) Option {
+	return optionApplyFunc(func(s *Server) error {
+		s.gatewayServiceHandlers = append(s.gatewayServiceHandlers, serverHandlers...)
 		return nil
 	})
 }
@@ -109,7 +117,7 @@ func WithGatewayDialCredentials(pubCert, privCert string) Option {
 	return optionApplyFunc(func(s *Server) error {
 		var creds credentials.TransportCredentials
 		var err error
-		certs, err := ParseCertificates(s.pubCert, s.privCert)
+		certs, err := ParseCertificates(pubCert, privCert)
 		if err != nil {
 			return fmt.Errorf("parse certs: %v", err)
 		}
@@ -124,6 +132,13 @@ func WithVersionPath(versionPath string) Option {
 		if versionPath != "" {
 			s.versionPath = versionPath
 		}
+		return nil
+	})
+}
+
+func WithSwaggerFile(swaggerFile string) Option {
+	return optionApplyFunc(func(s *Server) error {
+		s.swaggerFile = swaggerFile
 		return nil
 	})
 }

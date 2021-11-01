@@ -42,14 +42,19 @@ func (s *Server) newGRPCGateway(ctx context.Context) error {
 
 	// Register the gateway service handlers; service handlers currently only talk to same grpc.ClientConn
 	// (joematpal) I do not see a use case where we need to have maintain a one to many type of connection for the Gateway
+
 	gwmux := runtime.NewServeMux(s.gatewayServerMuxOptions...)
 	endpoint := s.getGatewayEndpoint()
+
+	s.Debugf("gateway host: %v", endpoint)
 
 	var err error
 	s.gwConn, err = grpc.DialContext(ctx, endpoint, dialOpts...)
 	if err != nil {
 		return fmt.Errorf("dial context: %v", err)
 	}
+
+	s.Debugf("gw conn state: %v", s.gwConn.GetState())
 
 	for _, handler := range s.gatewayServiceHandlers {
 		if err := handler(ctx, gwmux, s.gwConn); err != nil {
@@ -63,7 +68,7 @@ func (s *Server) newGRPCGateway(ctx context.Context) error {
 	mux.Handle("/", gwmux)
 
 	if s.swaggerFile != "" {
-		mux.HandleFunc("/swagger.json", serveSwaggerJSON(s.swaggerFile))
+		mux.HandleFunc("/spec/v1/swagger.json", s.serveSwaggerJSON(s.swaggerFile))
 	}
 
 	s.httpServer = &http.Server{
@@ -91,8 +96,10 @@ func (s *Server) newGRPCGateway(ctx context.Context) error {
 	return nil
 }
 
-func serveSwaggerJSON(filepath string) func(w http.ResponseWriter, r *http.Request) {
+func (s *Server) serveSwaggerJSON(filepath string) func(w http.ResponseWriter, r *http.Request) {
+
 	return func(w http.ResponseWriter, r *http.Request) {
+		s.Debugf("server swagger.json: %s", filepath)
 		http.ServeFile(w, r, filepath)
 	}
 }
