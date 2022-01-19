@@ -76,7 +76,6 @@ func NewApp() *cli.App {
 				opts = append(opts,
 					grpcp.WithPubCert(pubCert),
 					grpcp.WithGatewayDialCredentials(c.String(serverf.GRPCPubCert), c.String(serverf.GRPCPrivCert)),
-					grpcp.WithGatewayDialCredentials(c.String(serverf.GRPCPubCert), c.String(serverf.GRPCPrivCert)),
 				)
 			} else {
 				opts = append(opts,
