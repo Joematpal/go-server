@@ -1,6 +1,8 @@
 package grpc
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
@@ -113,6 +115,7 @@ func WithGatewayDialOptions(opts ...grpc.DialOption) Option {
 	})
 }
 
+// WithGatewayDialCredentials appends transport creds to gateway dial options
 func WithGatewayDialCredentials(pubCert, privCert string) Option {
 	return optionApplyFunc(func(s *Server) error {
 		var creds credentials.TransportCredentials
@@ -139,6 +142,41 @@ func WithVersionPath(versionPath string) Option {
 func WithSwaggerFile(swaggerFile string) Option {
 	return optionApplyFunc(func(s *Server) error {
 		s.swaggerFile = swaggerFile
+		return nil
+	})
+}
+
+func WithInsecureSkipVerify() Option {
+	return optionApplyFunc(func(s *Server) error {
+		s.insecureSkipVerify = true
+		return nil
+	})
+}
+
+func WithHandler(handler Handler) Option {
+	return optionApplyFunc(func(s *Server) error {
+		s.handler = handler
+		return nil
+	})
+}
+
+func WithDialCerts(dialCerts []tls.Certificate) Option {
+	return optionApplyFunc(func(s *Server) error {
+		s.dialCerts = dialCerts
+		return nil
+	})
+}
+
+func WithClientAuthType(clientAuthType tls.ClientAuthType) Option {
+	return optionApplyFunc(func(s *Server) error {
+		s.clientAuthType = clientAuthType
+		return nil
+	})
+}
+
+func WithClientCAs(clientCAs *x509.CertPool) Option {
+	return optionApplyFunc(func(s *Server) error {
+		s.clientCAs = clientCAs
 		return nil
 	})
 }

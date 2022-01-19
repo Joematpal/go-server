@@ -4,8 +4,8 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/digital-dream-labs/go-server/example/server/internal/logger"
-	streamer "github.com/digital-dream-labs/go-server/pkg/streamer/v1"
+	"github.com/joematpal/go-server/example/server/internal/logger"
+	streamer "github.com/joematpal/go-server/pkg/streamer/v1"
 )
 
 type RouteGuide struct {

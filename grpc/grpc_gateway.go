@@ -3,6 +3,7 @@ package grpc
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"net/http"
 	"strings"
@@ -22,20 +23,18 @@ func (s *Server) getGatewayEndpoint() string {
 
 // Register the http server for the GRPC Gateway.
 // and Register the grpc client on the mux runtime (handler)
+// NOTE: this will fail if tls certs are not passed in and or it insecure is not passed
+// GRPC Gateway and the GRPC Server cannot run on the same port if they are not tls
+// the transport client cannot upgrade from http1 to http2 without it
 func (s *Server) newGRPCGateway(ctx context.Context) error {
 
 	dialOpts := []grpc.DialOption{}
 	// Dial Credentials need to come from the outside if they are different than the local service
 	// If no Certificates are pass we assume they are running on the same server
+
 	if len(s.gatewayDialOptions) == 0 {
-		var creds credentials.TransportCredentials
-		var err error
-		certs, err := ParseCertificates(s.pubCert, s.privCert)
-		if err != nil {
-			return fmt.Errorf("parse certs: %v", err)
-		}
-		creds = Credentials(certs)
-		dialOpts = append(dialOpts, grpc.WithTransportCredentials(creds))
+		// The cert should have been loaded in from the constructor, this is assuming that insecure wasn't passed in
+		dialOpts = append(dialOpts, grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{Certificates: s.dialCerts})))
 	}
 
 	dialOpts = append(dialOpts, s.gatewayDialOptions...)
@@ -63,12 +62,20 @@ func (s *Server) newGRPCGateway(ctx context.Context) error {
 		}
 	}
 
-	mux := http.NewServeMux()
-
-	mux.Handle("/", gwmux)
-
 	if s.swaggerFile != "" {
-		mux.HandleFunc("/spec/v1/swagger.json", s.serveSwaggerJSON(s.swaggerFile))
+		s.Debugf("serving swagger: %s", s.swaggerFile)
+		// TODO: add the ability to change the swagger path?
+		gwmux.HandlePath(http.MethodGet, "/spec/v1/swagger.json", func(w http.ResponseWriter, r *http.Request, pathParams map[string]string) {
+			http.ServeFile(w, r, s.swaggerFile)
+		})
+	}
+
+	var handler http.Handler
+	if s.handler == nil {
+		handler = gwmux
+	} else {
+		s.handler.Handle("/", gwmux)
+		handler = s.handler
 	}
 
 	s.httpServer = &http.Server{
@@ -77,37 +84,40 @@ func (s *Server) newGRPCGateway(ctx context.Context) error {
 
 	// Register the http server for gRPC gateway
 	if s.IsTLS() {
-		certs, err := ParseCertificates(s.pubCert, s.privCert)
-		if err != nil {
-			return err
-		}
+		s.Debugf("running tls")
+
+		s.Debugf("insecureSkipVerify: %v", s.insecureSkipVerify)
+
 		s.httpServer.TLSConfig = &tls.Config{
-			Certificates: []tls.Certificate{certs},
-			NextProtos:   []string{"h2"},
+			Certificates:       s.dialCerts,
+			ClientCAs:          s.getCertPool(),
+			ClientAuth:         s.clientAuthType,
+			InsecureSkipVerify: s.insecureSkipVerify,
+			NextProtos:         []string{"h2"},
 		}
 	}
 
 	if s.grpcServer != nil {
-		s.httpServer.Handler = grpcHandlerFunc(s.grpcServer, mux)
+		s.httpServer.Handler = s.grpcHandlerFunc(s.grpcServer, handler)
 	} else {
-		s.httpServer.Handler = mux
+		s.httpServer.Handler = handler
 	}
 
 	return nil
 }
 
-func (s *Server) serveSwaggerJSON(filepath string) func(w http.ResponseWriter, r *http.Request) {
-
-	return func(w http.ResponseWriter, r *http.Request) {
-		s.Debugf("server swagger.json: %s", filepath)
-		http.ServeFile(w, r, filepath)
+func (s *Server) getCertPool() *x509.CertPool {
+	if s.clientCAs == nil {
+		return x509.NewCertPool()
 	}
+
+	return s.clientCAs
 }
 
 // grpcHandlerFunc returns an http.Handler that delegates to grpcServer on incoming gRPC
 // connections or otherHandler otherwise. Copied from cockroachdb.
 // Code from https://github.com/philips/grpc-gateway-example/blob/master/cmd/serve.go
-func grpcHandlerFunc(grpcServer *grpc.Server, otherHandler http.Handler) http.Handler {
+func (s *Server) grpcHandlerFunc(grpcServer *grpc.Server, otherHandler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// This is a partial recreation of gRPC's internal checks https://github.com/grpc/grpc-go/pull/514/files#diff-95e9a25b738459a2d3030e1e6fa2a718R61
 
@@ -115,8 +125,10 @@ func grpcHandlerFunc(grpcServer *grpc.Server, otherHandler http.Handler) http.Ha
 		if grpcServer != nil &&
 			r.ProtoMajor == 2 &&
 			strings.Contains(r.Header.Get("Content-Type"), "application/grpc") {
+			s.Debugf("http2 path: %s", r.URL.Path)
 			grpcServer.ServeHTTP(w, r)
 		} else {
+			s.Debugf("http path: %s", r.URL.Path)
 			otherHandler.ServeHTTP(w, r)
 		}
 	})

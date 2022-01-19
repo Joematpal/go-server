@@ -1,7 +1,7 @@
 
 syntax = "proto3";
 
-option go_package = "github.com/digital-dream-labs/go-server/pkg/streamer";
+option go_package = "github.com/joematpal/go-server/pkg/streamer";
 
 package streamer;
 

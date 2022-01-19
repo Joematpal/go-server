@@ -9,8 +9,8 @@ import (
 	"syscall"
 	"time"
 
-	serverf "github.com/digital-dream-labs/go-server/flags"
-	streamer "github.com/digital-dream-labs/go-server/pkg/streamer/v1"
+	serverf "github.com/joematpal/go-server/flags"
+	streamer "github.com/joematpal/go-server/pkg/streamer/v1"
 	cli "github.com/urfave/cli/v2"
 	"google.golang.org/grpc"
 )

@@ -3,20 +3,22 @@ package main
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 
-	logger "github.com/digital-dream-labs/go-logger"
-	loggerf "github.com/digital-dream-labs/go-logger/flags"
+	logger "github.com/joematpal/go-logger"
+	loggerf "github.com/joematpal/go-logger/flags"
 
-	"github.com/digital-dream-labs/go-server/example/server/internal/flags"
-	route_guide "github.com/digital-dream-labs/go-server/example/server/internal/route_guide"
-	serverf "github.com/digital-dream-labs/go-server/flags"
-	grpcp "github.com/digital-dream-labs/go-server/grpc"
-	streamer "github.com/digital-dream-labs/go-server/pkg/streamer/v1"
+	"github.com/joematpal/go-server/example/server/internal/flags"
+	route_guide "github.com/joematpal/go-server/example/server/internal/route_guide"
+	serverf "github.com/joematpal/go-server/flags"
+	grpcp "github.com/joematpal/go-server/grpc"
+	streamer "github.com/joematpal/go-server/pkg/streamer/v1"
 	cli "github.com/urfave/cli/v2"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 func NewApp() *cli.App {
@@ -34,15 +36,29 @@ func NewApp() *cli.App {
 				return fmt.Errorf("new logger: %v", err)
 			}
 
+			mux := http.NewServeMux()
+
+			mux.HandleFunc("/test", func(rw http.ResponseWriter, r *http.Request) {
+				rw.Write([]byte(`{"status": 200, "message": "ok"}`))
+			})
+
 			opts := []grpcp.Option{
 				grpcp.WithRegisterService(func(s *grpc.Server) {
 					rg := route_guide.New(logr)
 					streamer.RegisterStreamerServer(s, rg)
 				}),
+				grpcp.WithServerOptions(grpc.EmptyServerOption{},
+					grpc.ChainStreamInterceptor(logger.LoggingStreamServerInterceptor(logr)),
+				),
 				grpcp.WithGatewayServiceHandlers(streamer.RegisterStreamerHandler),
+				grpcp.WithHandler(mux),
 				grpcp.WithLogger(logr),
+				grpcp.WithInsecureSkipVerify(),
 			}
 
+			if swaggerFile := c.String(serverf.SwaggerFile); swaggerFile != "" {
+				opts = append(opts, grpcp.WithSwaggerFile(swaggerFile))
+			}
 			if host := c.String(serverf.GRPCHost); host != "" {
 				opts = append(opts, grpcp.WithHost(host))
 			}
@@ -54,8 +70,17 @@ func NewApp() *cli.App {
 			if tls := c.Bool(serverf.GRPCTLS); tls {
 				opts = append(opts, grpcp.WithTLS(tls))
 			}
+
 			if pubCert := c.String(serverf.GRPCPubCert); pubCert != "" {
-				opts = append(opts, grpcp.WithPubCert(pubCert))
+
+				opts = append(opts,
+					grpcp.WithPubCert(pubCert),
+					grpcp.WithGatewayDialCredentials(c.String(serverf.GRPCPubCert), c.String(serverf.GRPCPrivCert)),
+				)
+			} else {
+				opts = append(opts,
+					grpcp.WithGatewayDialOptions(grpc.WithTransportCredentials(insecure.NewCredentials())),
+				)
 			}
 			if privCert := c.String(serverf.GRPCPrivCert); privCert != "" {
 				opts = append(opts, grpcp.WithPrivCert(privCert))
