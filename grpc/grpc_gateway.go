@@ -63,12 +63,20 @@ func (s *Server) newGRPCGateway(ctx context.Context) error {
 		}
 	}
 
-	mux := http.NewServeMux()
-
-	mux.Handle("/", gwmux)
-
 	if s.swaggerFile != "" {
-		mux.HandleFunc("/spec/v1/swagger.json", s.serveSwaggerJSON(s.swaggerFile))
+		s.Debugf("serving swagger: %s", s.swaggerFile)
+		// TODO: add the ability to change the swagger path?
+		gwmux.HandlePath(http.MethodGet, "/spec/v1/swagger.json", func(w http.ResponseWriter, r *http.Request, pathParams map[string]string) {
+			http.ServeFile(w, r, s.swaggerFile)
+		})
+	}
+
+	var handler http.Handler
+	if s.handler == nil {
+		handler = gwmux
+	} else {
+		s.handler.Handle("/", gwmux)
+		handler = s.handler
 	}
 
 	s.httpServer = &http.Server{
@@ -82,32 +90,25 @@ func (s *Server) newGRPCGateway(ctx context.Context) error {
 			return err
 		}
 		s.httpServer.TLSConfig = &tls.Config{
-			Certificates: []tls.Certificate{certs},
-			NextProtos:   []string{"h2"},
+			Certificates:       []tls.Certificate{certs},
+			NextProtos:         []string{"h2"},
+			InsecureSkipVerify: s.insecureSkipVerify,
 		}
 	}
 
 	if s.grpcServer != nil {
-		s.httpServer.Handler = grpcHandlerFunc(s.grpcServer, mux)
+		s.httpServer.Handler = s.grpcHandlerFunc(s.grpcServer, handler)
 	} else {
-		s.httpServer.Handler = mux
+		s.httpServer.Handler = handler
 	}
 
 	return nil
 }
 
-func (s *Server) serveSwaggerJSON(filepath string) func(w http.ResponseWriter, r *http.Request) {
-
-	return func(w http.ResponseWriter, r *http.Request) {
-		s.Debugf("server swagger.json: %s", filepath)
-		http.ServeFile(w, r, filepath)
-	}
-}
-
 // grpcHandlerFunc returns an http.Handler that delegates to grpcServer on incoming gRPC
 // connections or otherHandler otherwise. Copied from cockroachdb.
 // Code from https://github.com/philips/grpc-gateway-example/blob/master/cmd/serve.go
-func grpcHandlerFunc(grpcServer *grpc.Server, otherHandler http.Handler) http.Handler {
+func (s *Server) grpcHandlerFunc(grpcServer *grpc.Server, otherHandler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// This is a partial recreation of gRPC's internal checks https://github.com/grpc/grpc-go/pull/514/files#diff-95e9a25b738459a2d3030e1e6fa2a718R61
 
@@ -115,8 +116,10 @@ func grpcHandlerFunc(grpcServer *grpc.Server, otherHandler http.Handler) http.Ha
 		if grpcServer != nil &&
 			r.ProtoMajor == 2 &&
 			strings.Contains(r.Header.Get("Content-Type"), "application/grpc") {
+			s.Debugf("http2 request")
 			grpcServer.ServeHTTP(w, r)
 		} else {
+			s.Debugf("http request")
 			otherHandler.ServeHTTP(w, r)
 		}
 	})

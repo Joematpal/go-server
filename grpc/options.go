@@ -113,6 +113,7 @@ func WithGatewayDialOptions(opts ...grpc.DialOption) Option {
 	})
 }
 
+// WithGatewayDialCredentials appends transport creds to gateway dial options
 func WithGatewayDialCredentials(pubCert, privCert string) Option {
 	return optionApplyFunc(func(s *Server) error {
 		var creds credentials.TransportCredentials
@@ -139,6 +140,19 @@ func WithVersionPath(versionPath string) Option {
 func WithSwaggerFile(swaggerFile string) Option {
 	return optionApplyFunc(func(s *Server) error {
 		s.swaggerFile = swaggerFile
+		return nil
+	})
+}
+
+func WithInsecureSkipVerify() Option {
+	return optionApplyFunc(func(s *Server) error {
+		s.insecureSkipVerify = true
+		return nil
+	})
+}
+func WithHandler(handler Handler) Option {
+	return optionApplyFunc(func(s *Server) error {
+		s.handler = handler
 		return nil
 	})
 }

@@ -12,6 +12,10 @@ import (
 	"google.golang.org/grpc"
 )
 
+type Handler interface {
+	Handle(path string, handler http.Handler)
+	http.Handler
+}
 type Server struct {
 	host             string
 	port             string
@@ -27,6 +31,9 @@ type Server struct {
 
 	versionPath string
 
+	// TLS Option for ignoring the tls in
+	insecureSkipVerify bool
+
 	// Gateway
 	gwConn                  *grpc.ClientConn
 	gwHost                  string
@@ -34,6 +41,9 @@ type Server struct {
 	gatewayServiceHandlers  []GatewayServiceHandler
 	gatewayServerMuxOptions []runtime.ServeMuxOption
 	gatewayDialOptions      []grpc.DialOption
+
+	// Experimental
+	handler Handler
 
 	// Swagger
 	swaggerFile string
