@@ -34,6 +34,7 @@ type Server struct {
 	// TLS Option for ignoring the tls in
 	insecureSkipVerify bool
 	dialCerts          []tls.Certificate
+	clientAuthType     tls.ClientAuthType
 
 	// Gateway
 	gwConn                  *grpc.ClientConn
@@ -84,6 +85,7 @@ func New(opts ...Option) (*Server, error) {
 		}
 	}
 
+	//
 	if s.IsTLS() && s.dialCerts != nil && len(s.dialCerts) == 0 {
 		certs, err := ParseCertificates(s.pubCert, s.privCert)
 		if err != nil {

@@ -24,20 +24,18 @@ func (s *Server) getGatewayEndpoint() string {
 
 // Register the http server for the GRPC Gateway.
 // and Register the grpc client on the mux runtime (handler)
+// NOTE: this will fail if tls certs are not passed in and or it insecure is not passed
+// GRPC Gateway and the GRPC Server cannot run on the same port if they are not tls
+// the transport client cannot upgrade from http1 to http2 without it
 func (s *Server) newGRPCGateway(ctx context.Context) error {
 
 	dialOpts := []grpc.DialOption{}
 	// Dial Credentials need to come from the outside if they are different than the local service
 	// If no Certificates are pass we assume they are running on the same server
+
 	if len(s.gatewayDialOptions) == 0 {
-		var creds credentials.TransportCredentials
-		var err error
-		certs, err := ParseCertificates(s.pubCert, s.privCert)
-		if err != nil {
-			return fmt.Errorf("parse certs: %v", err)
-		}
-		creds = Credentials(certs)
-		dialOpts = append(dialOpts, grpc.WithTransportCredentials(creds))
+		// The cert should have been loaded in from the constructor, this is assuming that insecure wasn't passed in
+		dialOpts = append(dialOpts, grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{Certificates: s.dialCerts})))
 	}
 
 	dialOpts = append(dialOpts, s.gatewayDialOptions...)
@@ -97,7 +95,7 @@ func (s *Server) newGRPCGateway(ctx context.Context) error {
 			Certificates:       append([]tls.Certificate{}, s.dialCerts...),
 			NextProtos:         []string{"h2"},
 			InsecureSkipVerify: s.insecureSkipVerify,
-			ClientAuth:         tls.RequestClientCert,
+			ClientAuth:         s.clientAuthType,
 		}
 	}
 

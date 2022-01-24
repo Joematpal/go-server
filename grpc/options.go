@@ -165,3 +165,10 @@ func WithDialCerts(dialCerts []tls.Certificate) Option {
 		return nil
 	})
 }
+
+func WithClientAuthType(clientAuthType tls.ClientAuthType) Option {
+	return optionApplyFunc(func(s *Server) error {
+		s.clientAuthType = clientAuthType
+		return nil
+	})
+}
