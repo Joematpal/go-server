@@ -92,7 +92,7 @@ func (s *Server) newGRPCGateway(ctx context.Context) error {
 		s.httpServer.ErrorLog = log.New(os.Stdout, "httpServer Err Logger: ", log.Llongfile)
 
 		s.httpServer.TLSConfig = &tls.Config{
-			Certificates:       append([]tls.Certificate{}, s.dialCerts...),
+			Certificates:       s.dialCerts,
 			NextProtos:         []string{"h2"},
 			InsecureSkipVerify: s.insecureSkipVerify,
 			ClientAuth:         s.clientAuthType,

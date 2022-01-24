@@ -10,6 +10,7 @@ import (
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 )
 
 type Handler interface {
@@ -167,7 +168,13 @@ func (s *Server) StartWithContext(ctx context.Context) error {
 	// this will be difficult because of it will need to handle two different go routines for spinning off the grpc server and the http gateway server
 
 	if s.IsTLS() {
-		s.serverOptions = append(s.serverOptions, grpc.Creds(Credentials(s.dialCerts[0])))
+		s.serverOptions = append(s.serverOptions, grpc.Creds(credentials.NewTLS(
+			&tls.Config{
+				Certificates:       s.dialCerts,
+				InsecureSkipVerify: s.insecureSkipVerify,
+				ClientAuth:         s.clientAuthType,
+			},
+		)))
 	}
 
 	if len(s.serverOptions) != 0 {
