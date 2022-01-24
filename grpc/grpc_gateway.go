@@ -4,9 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"log"
 	"net/http"
-	"os"
 	"strings"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
@@ -88,8 +86,6 @@ func (s *Server) newGRPCGateway(ctx context.Context) error {
 		s.Debugf("running tls")
 
 		s.Debugf("insecureSkipVerify: %v", s.insecureSkipVerify)
-
-		s.httpServer.ErrorLog = log.New(os.Stdout, "httpServer Err Logger: ", log.Llongfile)
 
 		s.httpServer.TLSConfig = &tls.Config{
 			Certificates:       s.dialCerts,
