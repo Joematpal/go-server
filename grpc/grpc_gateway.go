@@ -4,7 +4,9 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"log"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
@@ -85,14 +87,17 @@ func (s *Server) newGRPCGateway(ctx context.Context) error {
 
 	// Register the http server for gRPC gateway
 	if s.IsTLS() {
-		certs, err := ParseCertificates(s.pubCert, s.privCert)
-		if err != nil {
-			return err
-		}
+		s.Debugf("running tls")
+
+		s.Debugf("insecureSkipVerify: %v", s.insecureSkipVerify)
+
+		s.httpServer.ErrorLog = log.New(os.Stdout, "httpServer Err Logger: ", log.Llongfile)
+
 		s.httpServer.TLSConfig = &tls.Config{
-			Certificates:       []tls.Certificate{certs},
+			Certificates:       append([]tls.Certificate{}, s.dialCerts...),
 			NextProtos:         []string{"h2"},
 			InsecureSkipVerify: s.insecureSkipVerify,
+			ClientAuth:         tls.RequestClientCert,
 		}
 	}
 
@@ -116,10 +121,10 @@ func (s *Server) grpcHandlerFunc(grpcServer *grpc.Server, otherHandler http.Hand
 		if grpcServer != nil &&
 			r.ProtoMajor == 2 &&
 			strings.Contains(r.Header.Get("Content-Type"), "application/grpc") {
-			s.Debugf("http2 request")
+			s.Debugf("http2 path: %s", r.URL.Path)
 			grpcServer.ServeHTTP(w, r)
 		} else {
-			s.Debugf("http request")
+			s.Debugf("http path: %s", r.URL.Path)
 			otherHandler.ServeHTTP(w, r)
 		}
 	})

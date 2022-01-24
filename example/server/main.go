@@ -53,7 +53,7 @@ func NewApp() *cli.App {
 				grpcp.WithGatewayServiceHandlers(streamer.RegisterStreamerHandler),
 				grpcp.WithHandler(mux),
 				grpcp.WithLogger(logr),
-				// grpcp.WithInsecureSkipVerify(),
+				grpcp.WithInsecureSkipVerify(),
 			}
 
 			if swaggerFile := c.String(serverf.SwaggerFile); swaggerFile != "" {

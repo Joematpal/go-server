@@ -33,6 +33,7 @@ type Server struct {
 
 	// TLS Option for ignoring the tls in
 	insecureSkipVerify bool
+	dialCerts          []tls.Certificate
 
 	// Gateway
 	gwConn                  *grpc.ClientConn
@@ -81,6 +82,14 @@ func New(opts ...Option) (*Server, error) {
 		if err != nil {
 			return nil, err
 		}
+	}
+
+	if s.IsTLS() && s.dialCerts != nil && len(s.dialCerts) == 0 {
+		certs, err := ParseCertificates(s.pubCert, s.privCert)
+		if err != nil {
+			return nil, fmt.Errorf("parse certs: %s", err)
+		}
+		s.dialCerts = []tls.Certificate{certs}
 	}
 
 	return s, nil
@@ -156,13 +165,7 @@ func (s *Server) StartWithContext(ctx context.Context) error {
 	// this will be difficult because of it will need to handle two different go routines for spinning off the grpc server and the http gateway server
 
 	if s.IsTLS() {
-		certs, err := ParseCertificates(s.pubCert, s.privCert)
-		s.Debugf("pubcert: %v", s.pubCert)
-		s.Debugf("privCert: %v", s.privCert)
-		if err != nil {
-			return fmt.Errorf("parse certs: %v", err)
-		}
-		s.serverOptions = append(s.serverOptions, grpc.Creds(Credentials(certs)))
+		s.serverOptions = append(s.serverOptions, grpc.Creds(Credentials(s.dialCerts[0])))
 	}
 
 	if len(s.serverOptions) != 0 {
