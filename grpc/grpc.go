@@ -87,10 +87,10 @@ func New(opts ...Option) (*Server, error) {
 	}
 
 	//
-	if s.IsTLS() && s.dialCerts != nil && len(s.dialCerts) == 0 {
+	if s.IsTLS() && (s.dialCerts == nil || s.dialCerts != nil && len(s.dialCerts) == 0) {
 		certs, err := ParseCertificates(s.pubCert, s.privCert)
 		if err != nil {
-			return nil, fmt.Errorf("parse certs: %s", err)
+			return nil, fmt.Errorf("parse certs: %w", err)
 		}
 		s.dialCerts = []tls.Certificate{certs}
 	}
