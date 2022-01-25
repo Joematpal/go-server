@@ -22,20 +22,18 @@ func (s *Server) getGatewayEndpoint() string {
 
 // Register the http server for the GRPC Gateway.
 // and Register the grpc client on the mux runtime (handler)
+// NOTE: this will fail if tls certs are not passed in and or it insecure is not passed
+// GRPC Gateway and the GRPC Server cannot run on the same port if they are not tls
+// the transport client cannot upgrade from http1 to http2 without it
 func (s *Server) newGRPCGateway(ctx context.Context) error {
 
 	dialOpts := []grpc.DialOption{}
 	// Dial Credentials need to come from the outside if they are different than the local service
 	// If no Certificates are pass we assume they are running on the same server
+
 	if len(s.gatewayDialOptions) == 0 {
-		var creds credentials.TransportCredentials
-		var err error
-		certs, err := ParseCertificates(s.pubCert, s.privCert)
-		if err != nil {
-			return fmt.Errorf("parse certs: %v", err)
-		}
-		creds = Credentials(certs)
-		dialOpts = append(dialOpts, grpc.WithTransportCredentials(creds))
+		// The cert should have been loaded in from the constructor, this is assuming that insecure wasn't passed in
+		dialOpts = append(dialOpts, grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{Certificates: s.dialCerts})))
 	}
 
 	dialOpts = append(dialOpts, s.gatewayDialOptions...)
@@ -85,14 +83,15 @@ func (s *Server) newGRPCGateway(ctx context.Context) error {
 
 	// Register the http server for gRPC gateway
 	if s.IsTLS() {
-		certs, err := ParseCertificates(s.pubCert, s.privCert)
-		if err != nil {
-			return err
-		}
+		s.Debugf("running tls")
+
+		s.Debugf("insecureSkipVerify: %v", s.insecureSkipVerify)
+
 		s.httpServer.TLSConfig = &tls.Config{
-			Certificates:       []tls.Certificate{certs},
+			Certificates:       s.dialCerts,
 			NextProtos:         []string{"h2"},
 			InsecureSkipVerify: s.insecureSkipVerify,
+			ClientAuth:         s.clientAuthType,
 		}
 	}
 
@@ -116,10 +115,10 @@ func (s *Server) grpcHandlerFunc(grpcServer *grpc.Server, otherHandler http.Hand
 		if grpcServer != nil &&
 			r.ProtoMajor == 2 &&
 			strings.Contains(r.Header.Get("Content-Type"), "application/grpc") {
-			s.Debugf("http2 request")
+			s.Debugf("http2 path: %s", r.URL.Path)
 			grpcServer.ServeHTTP(w, r)
 		} else {
-			s.Debugf("http request")
+			s.Debugf("http path: %s", r.URL.Path)
 			otherHandler.ServeHTTP(w, r)
 		}
 	})

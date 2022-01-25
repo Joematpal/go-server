@@ -1,6 +1,7 @@
 package grpc
 
 import (
+	"crypto/tls"
 	"fmt"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
@@ -150,9 +151,24 @@ func WithInsecureSkipVerify() Option {
 		return nil
 	})
 }
+
 func WithHandler(handler Handler) Option {
 	return optionApplyFunc(func(s *Server) error {
 		s.handler = handler
+		return nil
+	})
+}
+
+func WithDialCerts(dialCerts []tls.Certificate) Option {
+	return optionApplyFunc(func(s *Server) error {
+		s.dialCerts = dialCerts
+		return nil
+	})
+}
+
+func WithClientAuthType(clientAuthType tls.ClientAuthType) Option {
+	return optionApplyFunc(func(s *Server) error {
+		s.clientAuthType = clientAuthType
 		return nil
 	})
 }

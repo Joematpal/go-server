@@ -10,6 +10,7 @@ import (
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 )
 
 type Handler interface {
@@ -33,6 +34,8 @@ type Server struct {
 
 	// TLS Option for ignoring the tls in
 	insecureSkipVerify bool
+	dialCerts          []tls.Certificate
+	clientAuthType     tls.ClientAuthType
 
 	// Gateway
 	gwConn                  *grpc.ClientConn
@@ -81,6 +84,15 @@ func New(opts ...Option) (*Server, error) {
 		if err != nil {
 			return nil, err
 		}
+	}
+
+	//
+	if s.IsTLS() && (s.dialCerts == nil || s.dialCerts != nil && len(s.dialCerts) == 0) {
+		certs, err := ParseCertificates(s.pubCert, s.privCert)
+		if err != nil {
+			return nil, fmt.Errorf("parse certs: %w", err)
+		}
+		s.dialCerts = []tls.Certificate{certs}
 	}
 
 	return s, nil
@@ -156,13 +168,13 @@ func (s *Server) StartWithContext(ctx context.Context) error {
 	// this will be difficult because of it will need to handle two different go routines for spinning off the grpc server and the http gateway server
 
 	if s.IsTLS() {
-		certs, err := ParseCertificates(s.pubCert, s.privCert)
-		s.Debugf("pubcert: %v", s.pubCert)
-		s.Debugf("privCert: %v", s.privCert)
-		if err != nil {
-			return fmt.Errorf("parse certs: %v", err)
-		}
-		s.serverOptions = append(s.serverOptions, grpc.Creds(Credentials(certs)))
+		s.serverOptions = append(s.serverOptions, grpc.Creds(credentials.NewTLS(
+			&tls.Config{
+				Certificates:       s.dialCerts,
+				InsecureSkipVerify: s.insecureSkipVerify,
+				ClientAuth:         s.clientAuthType,
+			},
+		)))
 	}
 
 	if len(s.serverOptions) != 0 {
