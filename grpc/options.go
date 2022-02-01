@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
@@ -169,6 +170,13 @@ func WithDialCerts(dialCerts []tls.Certificate) Option {
 func WithClientAuthType(clientAuthType tls.ClientAuthType) Option {
 	return optionApplyFunc(func(s *Server) error {
 		s.clientAuthType = clientAuthType
+		return nil
+	})
+}
+
+func WithClientCAs(clientCAs *x509.CertPool) Option {
+	return optionApplyFunc(func(s *Server) error {
+		s.clientCAs = clientCAs
 		return nil
 	})
 }

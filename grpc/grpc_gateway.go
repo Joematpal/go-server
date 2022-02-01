@@ -3,6 +3,7 @@ package grpc
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"net/http"
 	"strings"
@@ -89,9 +90,10 @@ func (s *Server) newGRPCGateway(ctx context.Context) error {
 
 		s.httpServer.TLSConfig = &tls.Config{
 			Certificates:       s.dialCerts,
-			NextProtos:         []string{"h2"},
-			InsecureSkipVerify: s.insecureSkipVerify,
+			ClientCAs:          s.getCertPool(),
 			ClientAuth:         s.clientAuthType,
+			InsecureSkipVerify: s.insecureSkipVerify,
+			NextProtos:         []string{"h2"},
 		}
 	}
 
@@ -102,6 +104,14 @@ func (s *Server) newGRPCGateway(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func (s *Server) getCertPool() *x509.CertPool {
+	if s.clientCAs == nil {
+		return x509.NewCertPool()
+	}
+
+	return s.clientCAs
 }
 
 // grpcHandlerFunc returns an http.Handler that delegates to grpcServer on incoming gRPC

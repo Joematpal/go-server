@@ -3,6 +3,7 @@ package grpc
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"net"
 	"net/http"
@@ -36,6 +37,7 @@ type Server struct {
 	insecureSkipVerify bool
 	dialCerts          []tls.Certificate
 	clientAuthType     tls.ClientAuthType
+	clientCAs          *x509.CertPool
 
 	// Gateway
 	gwConn                  *grpc.ClientConn
@@ -171,8 +173,9 @@ func (s *Server) StartWithContext(ctx context.Context) error {
 		s.serverOptions = append(s.serverOptions, grpc.Creds(credentials.NewTLS(
 			&tls.Config{
 				Certificates:       s.dialCerts,
-				InsecureSkipVerify: s.insecureSkipVerify,
+				ClientCAs:          s.getCertPool(),
 				ClientAuth:         s.clientAuthType,
+				InsecureSkipVerify: s.insecureSkipVerify,
 			},
 		)))
 	}
