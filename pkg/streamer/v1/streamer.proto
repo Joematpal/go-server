@@ -5,21 +5,12 @@ option go_package = "github.com/joematpal/go-server/pkg/streamer/v1;streamer_v1"
 
 package streamer.v1;
 
-import "google/api/annotations.proto";
-import "google/api/field_behavior.proto";
-import "google/protobuf/duration.proto";
-import "google/protobuf/empty.proto";
-import "google/protobuf/field_mask.proto";
-import "google/protobuf/timestamp.proto";
-import "google/protobuf/wrappers.proto";
-import "google/rpc/status.proto";
 import "protoc-gen-openapiv2/options/annotations.proto";
-import "protoc-gen-openapiv2/options/openapiv2.proto";
 
 option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
   info: {
-    title: "Example StreamerService for go-server package";
-    description: "A description";
+    title: "StreamerService for go-server package";
+    description: "Example of how to use the package go-server";
     version: "1.0";
     contact: {
       url: "https://github.com/joematpal/go-server";
