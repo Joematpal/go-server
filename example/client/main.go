@@ -31,7 +31,7 @@ func NewApp() *cli.App {
 			if err != nil {
 				return fmt.Errorf("dial context: %v", err)
 			}
-			rg := streamer.NewStreamerClient(conn)
+			rg := streamer.NewStreamerServiceClient(conn)
 
 			rrc, err := rg.StreamPoint(ctx)
 			if err != nil {

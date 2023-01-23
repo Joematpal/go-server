@@ -45,12 +45,12 @@ func NewApp() *cli.App {
 			opts := []grpcp.Option{
 				grpcp.WithRegisterService(func(s *grpc.Server) {
 					rg := route_guide.New(logr)
-					streamer.RegisterStreamerServer(s, rg)
+					streamer.RegisterStreamerServiceServer(s, rg)
 				}),
 				grpcp.WithServerOptions(grpc.EmptyServerOption{},
 					grpc.ChainStreamInterceptor(logger.LoggingStreamServerInterceptor(logr)),
 				),
-				grpcp.WithGatewayServiceHandlers(streamer.RegisterStreamerHandler),
+				grpcp.WithGatewayServiceHandlers(streamer.RegisterStreamerServiceHandler),
 				grpcp.WithHandler(mux),
 				grpcp.WithLogger(logr),
 				grpcp.WithInsecureSkipVerify(),
