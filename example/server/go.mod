@@ -3,6 +3,7 @@ module github.com/joematpal/go-server/example/server
 go 1.18
 
 require (
+	github.com/bufbuild/connect-go v1.4.1
 	github.com/joematpal/go-logger v0.0.0-20220809183014-82ef2a900169
 	github.com/joematpal/go-server v0.0.0-00010101000000-000000000000
 	github.com/urfave/cli/v2 v2.11.1

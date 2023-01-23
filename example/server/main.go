@@ -12,10 +12,11 @@ import (
 	loggerf "github.com/joematpal/go-logger/flags"
 
 	"github.com/joematpal/go-server/example/server/internal/flags"
-	route_guide "github.com/joematpal/go-server/example/server/internal/route_guide"
+	streamer "github.com/joematpal/go-server/example/server/internal/streamer"
 	serverf "github.com/joematpal/go-server/flags"
 	grpcp "github.com/joematpal/go-server/grpc"
-	streamer "github.com/joematpal/go-server/pkg/streamer/v1"
+	streamerpb "github.com/joematpal/go-server/pkg/streamer/v1"
+	"github.com/joematpal/go-server/pkg/streamer/v1/streamer_v1connect"
 	cli "github.com/urfave/cli/v2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -41,16 +42,21 @@ func NewApp() *cli.App {
 			mux.HandleFunc("/test", func(rw http.ResponseWriter, r *http.Request) {
 				rw.Write([]byte(`{"status": 200, "message": "ok"}`))
 			})
+			rg := streamer.New(logr)
+
+			path, streamerV1Handler := streamer_v1connect.NewStreamerServiceHandler(rg)
+
+			mux.Handle(path, streamerV1Handler)
 
 			opts := []grpcp.Option{
-				grpcp.WithRegisterService(func(s *grpc.Server) {
-					rg := route_guide.New(logr)
-					streamer.RegisterStreamerServiceServer(s, rg)
-				}),
+				// grpcp.WithRegisterService(func(s *grpc.Server) {
+
+				//  streamer.RegisterStreamerServiceServer(s, rg)
+				// }),
 				grpcp.WithServerOptions(grpc.EmptyServerOption{},
 					grpc.ChainStreamInterceptor(logger.LoggingStreamServerInterceptor(logr)),
 				),
-				grpcp.WithGatewayServiceHandlers(streamer.RegisterStreamerServiceHandler),
+				grpcp.WithGatewayServiceHandlers(streamerpb.RegisterStreamerServiceHandler),
 				grpcp.WithHandler(mux),
 				grpcp.WithLogger(logr),
 				grpcp.WithInsecureSkipVerify(),

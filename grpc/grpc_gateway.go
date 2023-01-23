@@ -9,6 +9,8 @@ import (
 	"strings"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
+	"golang.org/x/net/http2"
+	"golang.org/x/net/http2/h2c"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )
@@ -40,7 +42,7 @@ func (s *Server) newGRPCGateway(ctx context.Context) error {
 	dialOpts = append(dialOpts, s.gatewayDialOptions...)
 
 	// Register the gateway service handlers; service handlers currently only talk to same grpc.ClientConn
-	// (joematpal) I do not see a use case where we need to have maintain a one to many type of connection for the Gateway
+	// (joematpal) I do not see a use case where we need to have/maintain a one-to-many type of connection for the Gateway
 
 	gwmux := runtime.NewServeMux(s.gatewayServerMuxOptions...)
 	endpoint := s.getGatewayEndpoint()
@@ -71,6 +73,7 @@ func (s *Server) newGRPCGateway(ctx context.Context) error {
 	}
 
 	var handler http.Handler
+
 	if s.handler == nil {
 		handler = gwmux
 	} else {
@@ -78,9 +81,9 @@ func (s *Server) newGRPCGateway(ctx context.Context) error {
 		handler = s.handler
 	}
 
-	s.httpServer = &http.Server{
-		Addr: fmt.Sprintf("%s:%s", s.host, s.port),
-	}
+	// if s.grpcServer != nil {
+	// 	handler = s.grpcHandlerFunc(s.grpcServer, handler)
+	// }
 
 	// Register the http server for gRPC gateway
 	if s.IsTLS() {
@@ -88,19 +91,22 @@ func (s *Server) newGRPCGateway(ctx context.Context) error {
 
 		s.Debugf("insecureSkipVerify: %v", s.insecureSkipVerify)
 
-		s.httpServer.TLSConfig = &tls.Config{
-			Certificates:       s.dialCerts,
-			ClientCAs:          s.getCertPool(),
-			ClientAuth:         s.clientAuthType,
-			InsecureSkipVerify: s.insecureSkipVerify,
-			NextProtos:         []string{"h2"},
+		s.httpServer = &http.Server{
+			Addr: fmt.Sprintf("%s:%s", s.host, s.port),
+			TLSConfig: &tls.Config{
+				Certificates:       s.dialCerts,
+				ClientCAs:          s.getCertPool(),
+				ClientAuth:         s.clientAuthType,
+				InsecureSkipVerify: s.insecureSkipVerify,
+				NextProtos:         []string{"h2"},
+			},
+			Handler: handler,
 		}
-	}
-
-	if s.grpcServer != nil {
-		s.httpServer.Handler = s.grpcHandlerFunc(s.grpcServer, handler)
 	} else {
-		s.httpServer.Handler = handler
+		s.httpServer = &http.Server{
+			Addr:    fmt.Sprintf("%s:%s", s.host, s.port),
+			Handler: h2c.NewHandler(handler, &http2.Server{}),
+		}
 	}
 
 	return nil
@@ -120,7 +126,6 @@ func (s *Server) getCertPool() *x509.CertPool {
 func (s *Server) grpcHandlerFunc(grpcServer *grpc.Server, otherHandler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// This is a partial recreation of gRPC's internal checks https://github.com/grpc/grpc-go/pull/514/files#diff-95e9a25b738459a2d3030e1e6fa2a718R61
-
 		// Checks if grpcServer is implemented
 		if grpcServer != nil &&
 			r.ProtoMajor == 2 &&
