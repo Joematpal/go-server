@@ -3,7 +3,7 @@ config_version: 3
 
 http:
   rules:
-    - selector: streamer.Streamer.StreamPoint
+    - selector: streamer.v1.StreamerService.StreamPoint
       post: /api/v1/stream/point
       body: "*"
       produces: application/json

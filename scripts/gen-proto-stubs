@@ -1,4 +1,4 @@
-SRC_DIR="./protobufs"
+SRC_DIR="./pkg"
 DST_DIR="./pkg"
 
 gen_proto_stubs() {

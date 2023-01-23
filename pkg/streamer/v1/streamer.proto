@@ -1,0 +1,47 @@
+
+syntax = "proto3";
+
+option go_package = "github.com/joematpal/go-server/pkg/streamer/v1;streamer_v1";
+
+package streamer.v1;
+
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/protobuf/duration.proto";
+import "google/protobuf/empty.proto";
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/wrappers.proto";
+import "google/rpc/status.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+import "protoc-gen-openapiv2/options/openapiv2.proto";
+
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+  info: {
+    title: "Example StreamerService for go-server package";
+    description: "A description";
+    version: "1.0";
+    contact: {
+      url: "https://github.com/joematpal/go-server";
+    };
+  };
+};
+
+// Interface exported by the server.
+service StreamerService {
+  rpc StreamPoint(stream Point) returns (Status);
+}
+
+// Points are represented as latitude-longitude pairs in the E7 representation
+// (degrees multiplied by 10**7 and rounded to the nearest integer).
+// Latitudes should be in the range +/- 90 degrees and longitude should be in
+// the range +/- 180 degrees (inclusive).
+message Point {
+  int32 latitude = 1;
+  int32 longitude = 2;
+}
+
+message Status {
+  int32 status = 1;
+  string message = 2;
+}

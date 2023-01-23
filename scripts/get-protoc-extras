@@ -1,9 +1,9 @@
 mkdir -p bin
 
-PROTO_EXTRAS=https://github.com/protocolbuffers/protobuf/archive/master.zip
-ZIP="master.zip"
+PROTO_EXTRAS=https://github.com/protocolbuffers/protobuf/archive/main.zip
+ZIP="main.zip"
 
 wget --no-check-certificate ${PROTO_EXTRAS}
-unzip -q master.zip -d bin
-mv bin/protobuf-master $1
+unzip -q main.zip -d bin
+mv bin/protobuf-main $1
 rm ${ZIP}

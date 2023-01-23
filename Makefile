@@ -52,5 +52,8 @@ bin/protoc: scripts/get-protoc
 bin/protobuf: bin/go.mod scripts/get-protoc-extras
 	@./scripts/get-protoc-extras bin/protobuf
 
-bin/protoc-gen-go:
-	# @go get -u github.com/golang/protobuf/protoc-gen-go
+bin/protoc-gen-connect-go:
+	go install github.com/bufbuild/buf/cmd/buf@latest
+	go install github.com/bufbuild/connect-go/cmd/protoc-gen-connect-go@latest
+	go install github.com/fullstorydev/grpcurl/cmd/grpcurl@latest
+	go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
