@@ -3,14 +3,19 @@ module github.com/joematpal/go-server/example/server
 go 1.18
 
 require (
+	github.com/joematpal/go-logger v0.0.0-20220809183014-82ef2a900169
+	github.com/joematpal/go-server v0.0.0-00010101000000-000000000000
 	github.com/urfave/cli/v2 v2.11.1
 	google.golang.org/grpc v1.52.0
 )
 
 require (
+	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
-	github.com/joematpal/go-logger v0.0.0-20220809183014-82ef2a900169 // indirect
+	github.com/grpc-ecosystem/grpc-gateway/v2 v2.15.0 // indirect
 	github.com/rs/xid v1.4.0 // indirect
+	github.com/russross/blackfriday/v2 v2.1.0 // indirect
+	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
 	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/multierr v1.9.0 // indirect
 	go.uber.org/zap v1.24.0 // indirect
