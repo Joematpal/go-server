@@ -64,21 +64,31 @@ func (s *Server) newGRPCGateway(ctx context.Context) error {
 		}
 	}
 
+	var handler http.Handler
+
+	// Swagger File Server
 	if s.swaggerFile != "" {
 		s.Debugf("serving swagger: %s", s.swaggerFile)
 		// TODO: add the ability to change the swagger path?
-		gwmux.HandlePath(http.MethodGet, "/spec/v1/swagger.json", func(w http.ResponseWriter, r *http.Request, pathParams map[string]string) {
+		s.handler.Handle("/spec/v1/swagger.json", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			http.ServeFile(w, r, s.swaggerFile)
-		})
+		}))
 	}
-
-	var handler http.Handler
 
 	if s.handler == nil {
 		handler = gwmux
 	} else {
 		s.handler.Handle("/", gwmux)
 		handler = s.handler
+	}
+	fmt.Println("swagger folder", s.swaggerFolder)
+
+	// Swagger Directory Server
+	if s.swaggerFolder != "" {
+		s.Debugf("serving swagger folder: %s", s.swaggerFile)
+		// TODO: add the ability to change the swagger path?
+		fmt.Println("swagger folder", s.swaggerFolder)
+		s.handler.Handle("/spec/", http.StripPrefix("/spec/", http.FileServer(http.Dir(s.swaggerFolder))))
 	}
 
 	// if s.grpcServer != nil {

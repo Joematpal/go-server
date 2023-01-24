@@ -146,6 +146,13 @@ func WithSwaggerFile(swaggerFile string) Option {
 	})
 }
 
+func WithSwaggerFolder(swaggerFolder string) Option {
+	return optionApplyFunc(func(s *Server) error {
+		s.swaggerFolder = swaggerFolder
+		return nil
+	})
+}
+
 func WithInsecureSkipVerify() Option {
 	return optionApplyFunc(func(s *Server) error {
 		s.insecureSkipVerify = true

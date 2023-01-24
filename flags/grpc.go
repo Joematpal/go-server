@@ -31,6 +31,7 @@ var (
 	GRPCGatewayClientPubCert  = "grpc-gwc-pub-cert"
 	GRPCGatewayClientPrivCert = "grpc-gwc-priv-cert"
 	SwaggerFile               = "swagger-file"
+	SwaggerFolder             = "swagger-folder"
 )
 
 var GRPCFlags = []cli.Flag{
@@ -79,5 +80,11 @@ var GRPCFlags = []cli.Flag{
 		Usage:   "set the filepath to `swagger.json`",
 		Value:   "/spec/v1/swagger.json",
 		EnvVars: flagNamesToEnv(SwaggerFile),
+	},
+	&cli.StringFlag{
+		Name:    SwaggerFolder,
+		Usage:   "set the filepath for swagger files",
+		Value:   "/spec/v1/",
+		EnvVars: flagNamesToEnv(SwaggerFolder),
 	},
 }

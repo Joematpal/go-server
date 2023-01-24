@@ -51,7 +51,8 @@ type Server struct {
 	handler Handler
 
 	// Swagger
-	swaggerFile string
+	swaggerFolder string
+	swaggerFile   string
 }
 
 type logger interface {
@@ -155,6 +156,10 @@ func (s *Server) applyOption(server *Server) error {
 		server.swaggerFile = s.swaggerFile
 	}
 
+	if s.swaggerFolder != "" {
+		server.swaggerFolder = s.swaggerFolder
+	}
+
 	if s.versionPath != "" {
 		server.versionPath = s.versionPath
 	}
@@ -195,21 +200,24 @@ func (s *Server) StartWithContext(ctx context.Context) error {
 			return fmt.Errorf("new grpc gateway: %v", err)
 		}
 	}
-
+	ctx, cancel := context.WithCancel(ctx)
 	eg, ctx := errgroup.WithContext(ctx)
-
+	defer cancel()
 	// Run grpc server only when gateway is not running - because httpServer has a mux to grpc
 	// and dont want two listeners on same port
 	if s.grpcServer != nil && s.httpServer == nil {
 		s.Debugf("running gRPC at %s", s.port)
 		eg.Go(func() error {
+			defer cancel()
 			return s.grpcServer.Serve(s.listener)
 		})
 	}
 
 	// before we run the gateway server we need to check if we even need it.
+	// httpServer is directly tied to the grpc-gateway implementation
 	if s.httpServer != nil {
 		eg.Go(func() error {
+			defer cancel()
 			s.Infof("http listening at %s", s.httpServer.Addr)
 			if s.IsTLS() {
 				return s.httpServer.Serve(tls.NewListener(s.listener, s.httpServer.TLSConfig))

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -65,6 +66,11 @@ func NewApp() *cli.App {
 			if swaggerFile := c.String(serverf.SwaggerFile); swaggerFile != "" {
 				opts = append(opts, grpcp.WithSwaggerFile(swaggerFile))
 			}
+
+			if swaggerFolder := c.String(serverf.SwaggerFolder); swaggerFolder != "" {
+				opts = append(opts, grpcp.WithSwaggerFolder(swaggerFolder))
+			}
+
 			if host := c.String(serverf.GRPCHost); host != "" {
 				opts = append(opts, grpcp.WithHost(host))
 			}
@@ -114,6 +120,6 @@ func main() {
 		<-sigs
 	}()
 	if err := NewApp().RunContext(ctx, os.Args); err != nil {
-		panic(err)
+		log.Print(err)
 	}
 }

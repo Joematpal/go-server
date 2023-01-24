@@ -1,0 +1,32 @@
+{
+  "name": "go-server",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "directories": {
+    "example": "example"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "buf:generate": "buf generate"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/joematpal/go-server.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/joematpal/go-server/issues"
+  },
+  "homepage": "https://github.com/joematpal/go-server#readme",
+  "devDependencies": {
+    "@bufbuild/protoc-gen-connect-web": "^0.6.0",
+    "@bufbuild/protoc-gen-es": "^1.0.0"
+  },
+  "dependencies": {
+    "@bufbuild/connect-web": "^0.6.0",
+    "@bufbuild/protobuf": "^1.0.0"
+  }
+}

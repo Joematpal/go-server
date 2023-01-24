@@ -16,3 +16,13 @@ plugins:
       - grpc_api_configuration=pkg/streamer/v1/streamer.yaml
   - name: openapiv2
     out: swagger
+  - plugin: es
+    out: example/web-client/src/gen
+    # With target=ts, we generate TypeScript files.
+    # Use target=js+dts to generate JavaScript and TypeScript declaration files
+    # like remote generation does.
+    opt: target=js+dts #ts
+  - plugin: connect-web
+    out: example/web-client/src/gen
+    # With target=ts, we generate TypeScript files.
+    opt: target=js+dts #ts
